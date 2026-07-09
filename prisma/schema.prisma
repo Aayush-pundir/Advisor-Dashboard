@@ -1,0 +1,231 @@
+// Advisor Dashboard — data model for the OmniCard CA Partner Network program
+// Maps directly to the 10-step execution plan (see /docs/ARCHITECTURE.md)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         String
+  partnerId    String?  @unique
+  partner      Partner? @relation(fields: [partnerId], references: [id])
+  createdAt    DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Partner (CA) lifecycle — Steps 1, 4, 5
+// ---------------------------------------------------------------------------
+
+model Partner {
+  id          String @id @default(cuid())
+  slug        String @unique // omnicard.in/advisor/[firm]
+  firmName    String
+  contactName String
+  email       String @unique
+  phone       String
+  city        String
+  state       String
+
+  icaiNumber   String?
+  icaiVerified Boolean   @default(false)
+  msaSignedAt  DateTime?
+
+  stage           String    @default("LEAD")
+  certifiedAt     DateTime?
+  demoScheduledAt DateTime?
+  demoAttendedAt  DateTime?
+
+  // ICP scoring — Step 1.2 (100 pts total)
+  icpClients  Int @default(0) // /25
+  icpAdvisory Int @default(0) // /20
+  icpTech     Int @default(0) // /15
+  icpSize     Int @default(0) // /10
+  icpGeo      Int @default(0) // /10
+  icpDigital  Int @default(0) // /10
+  icpMindset  Int @default(0) // /10
+
+  badgeTier    String @default("NONE")
+  referralCode String @unique
+
+  referredById String?
+  referredBy   Partner?  @relation("PartnerReferrals", fields: [referredById], references: [id])
+  referrals    Partner[] @relation("PartnerReferrals")
+
+  user                  User?
+  assetKitItems         AssetKitItem[]
+  leads                 Lead[]
+  commissions           Commission[]
+  campaigns             Campaign[]
+  badges                Badge[]
+  activities            ActivityEvent[]
+  referralBonusesEarned ReferralBonus[] @relation("ReferrerBonuses")
+  referralBonusesFor    ReferralBonus[] @relation("ReferredBonuses")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([stage])
+  @@index([city])
+}
+
+// icpTotal is computed in application code (sum of the seven fields);
+// scores >=70 are pursued, <50 are skipped per Step 1.2.
+
+// ---------------------------------------------------------------------------
+// Per-CA creation checklist — Step 3 (12 deliverables, tracked as checkboxes)
+// ---------------------------------------------------------------------------
+
+model AssetKitItem {
+  id          String    @id @default(cuid())
+  partnerId   String
+  partner     Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  key         String
+  status      String    @default("PENDING")
+  owner       String // e.g. "Marketing Ops", "Auto (CRM)", "Design"
+  dueAt       DateTime?
+  deliveredAt DateTime?
+
+  @@unique([partnerId, key])
+}
+
+// ---------------------------------------------------------------------------
+// Lead-to-Revenue machine — Step 6
+// ---------------------------------------------------------------------------
+
+model Lead {
+  id           String       @id @default(cuid())
+  partnerId    String
+  partner      Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  businessName String
+  contactName  String
+  phone        String
+  email        String
+  source       String
+  stage        String       @default("CAPTURED")
+  dealValue    Int          @default(0) // annual contract value, INR
+  contactedAt  DateTime?
+  demoAt       DateTime?
+  closedAt     DateTime?
+  commissions  Commission[]
+  createdAt    DateTime     @default(now())
+
+  @@index([partnerId])
+  @@index([stage])
+}
+
+// ---------------------------------------------------------------------------
+// Commission ledger — Step 1.4 / Step 6.6 / Step 10 unit economics
+// ---------------------------------------------------------------------------
+
+model Commission {
+  id         String    @id @default(cuid())
+  partnerId  String
+  partner    Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  leadId     String?
+  lead       Lead?     @relation(fields: [leadId], references: [id])
+  type       String
+  amount     Int // INR
+  status     String    @default("PENDING")
+  creditedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([partnerId])
+}
+
+model ReferralBonus {
+  id         String   @id @default(cuid())
+  referrerId String
+  referrer   Partner  @relation("ReferrerBonuses", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredId String
+  referred   Partner  @relation("ReferredBonuses", fields: [referredId], references: [id], onDelete: Cascade)
+  amount     Int
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Milestones & badges — Step 4
+// ---------------------------------------------------------------------------
+
+model Badge {
+  id                 String    @id @default(cuid())
+  partnerId          String
+  partner            Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  tier               String
+  quarter            String // e.g. "2026-Q3"
+  clientsAtMilestone Int
+  issuedAt           DateTime  @default(now())
+  giftDispatchedAt   DateTime?
+
+  @@unique([partnerId, quarter, tier])
+}
+
+// ---------------------------------------------------------------------------
+// Acquisition marketing engine — Step 7 + campaign approvals
+// ---------------------------------------------------------------------------
+
+model Campaign {
+  id          String    @id @default(cuid())
+  partnerId   String
+  partner     Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  type        String
+  title       String
+  status      String    @default("DRAFTED")
+  scheduledAt DateTime?
+  approvedAt  DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([partnerId])
+}
+
+// ---------------------------------------------------------------------------
+// Activity tracking — Step 6.1 / Step 9 attribution
+// ---------------------------------------------------------------------------
+
+model ActivityEvent {
+  id        String   @id @default(cuid())
+  partnerId String
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  type      String
+  meta      String?
+  createdAt DateTime @default(now())
+
+  @@index([partnerId])
+  @@index([type])
+}
+
+// ---------------------------------------------------------------------------
+// KPI snapshots — Step 9, weekly cadence
+// ---------------------------------------------------------------------------
+
+model KpiSnapshot {
+  id                          String   @id @default(cuid())
+  weekOf                      DateTime @unique
+  costPerPartnerLead          Int // target <= 500
+  visitorToSignupPct          Float // target >= 8
+  signupToCertifiedPct        Float // target >= 70
+  avgDaysToCertify            Float // target <= 7
+  certifiedToFirstCampaignPct Float // target >= 60 (activation kill metric)
+  leadToDemoPct               Float // target >= 40
+  demoToClosePct              Float // target >= 25
+  slaPct                      Float // target >= 95
+  clientsPerActiveCA          Float // target >= 5
+  nps                         Float // target >= 50
+  dormancyPct                 Float // target < 25
+  referredSharePct            Float // target >= 20
+  createdAt                   DateTime @default(now())
+}
