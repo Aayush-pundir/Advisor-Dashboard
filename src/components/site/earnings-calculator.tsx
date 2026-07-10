@@ -10,7 +10,7 @@ import {
 
 export function EarningsCalculator() {
   const [clients, setClients] = useState(10);
-  const [acv, setAcv] = useState(60000);
+  const [acv, setAcv] = useState(500000);
 
   const { year1Total, trailingTotal, lifetimeTotal, tenureYears } = useMemo(() => {
     const perClient = ltvCommissionPerClient(acv, DEFAULT_ANNUAL_CHURN);
@@ -78,16 +78,16 @@ export function EarningsCalculator() {
           </div>
           <input
             type="range"
-            min={20000}
-            max={300000}
-            step={5000}
+            min={100000}
+            max={5000000}
+            step={50000}
             value={acv}
             onChange={(e) => setAcv(Number(e.target.value))}
             className="mt-3 w-full accent-[#D6362B]"
           />
           <div className="mt-1 flex justify-between text-[11px] text-[#1B1714]/45">
-            <span>Rs 20K</span>
-            <span>Rs 3L</span>
+            <span>Rs 1L</span>
+            <span>Rs 50L</span>
           </div>
         </div>
       </div>
