@@ -237,6 +237,9 @@ export const MDF_STATUS_LABELS: Record<MdfStatus, string> = {
   PAID: "Paid Out",
 };
 
+export const RISK_LEVELS = ["LOW", "MEDIUM", "HIGH"] as const;
+export type RiskLevel = (typeof RISK_LEVELS)[number];
+
 /** Certification step-up track (Partner.certLevel) — separate from the
  * one-time onboarding certification (Partner.stage === CERTIFIED). Partners
  * progress through levels by completing self-serve modules. */
