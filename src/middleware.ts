@@ -30,7 +30,12 @@ export async function middleware(req: NextRequest) {
     if (isPartnerRoute && role !== "CA") {
       return NextResponse.redirect(new URL("/admin", req.url));
     }
-    return NextResponse.next();
+
+    // Forward the current pathname so the partner layout can gate
+    // pre-certification partners to the onboarding-status page only.
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   } catch {
     return NextResponse.redirect(new URL("/login", req.url));
   }

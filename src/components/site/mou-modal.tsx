@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { signMouAction } from "@/app/actions/partner";
 
@@ -32,6 +33,7 @@ const today = () =>
 export function MouModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [form, setForm] = useState<MouForm>(EMPTY_FORM);
   const [signed, setSigned] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -48,6 +50,7 @@ export function MouModal({ open, onClose }: { open: boolean; onClose: () => void
       const result = await signMouAction(fd);
       if (result.ok) {
         setSigned(true);
+        setTempPassword(result.tempPassword ?? null);
       } else {
         setError(result.error ?? "Something went wrong. Please try again.");
       }
@@ -58,6 +61,7 @@ export function MouModal({ open, onClose }: { open: boolean; onClose: () => void
     onClose();
     setTimeout(() => {
       setSigned(false);
+      setTempPassword(null);
       setError(null);
       setForm(EMPTY_FORM);
     }, 300);
@@ -142,8 +146,40 @@ export function MouModal({ open, onClose }: { open: boolean; onClose: () => void
                 </div>
                 <div style={{ fontSize: 15, color: "rgba(27,23,20,0.65)", lineHeight: 1.6, maxWidth: 380, margin: "0 auto" }}>
                   Your Memorandum of Understanding has been recorded. OmniCard&apos;s partnerships team will
-                  countersign and reach out to schedule your certification demo.
+                  countersign and reach out to schedule your certification demo — you can track every step of that
+                  from your new advisor login below.
                 </div>
+                {tempPassword && (
+                  <div
+                    style={{
+                      marginTop: 24,
+                      maxWidth: 380,
+                      marginLeft: "auto",
+                      marginRight: "auto",
+                      background: "rgba(212,160,23,0.08)",
+                      border: "1px solid rgba(212,160,23,0.35)",
+                      borderRadius: 8,
+                      padding: 16,
+                      textAlign: "left",
+                    }}
+                  >
+                    <p style={{ fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em", color: "#B22C22", margin: "0 0 8px" }}>
+                      Your advisor login (no email provider configured — copy this now)
+                    </p>
+                    <p style={{ fontSize: 13.5, margin: "0 0 4px", color: "#171310" }}>
+                      Email: <strong>{form.email}</strong>
+                    </p>
+                    <p style={{ fontSize: 13.5, margin: 0, color: "#171310" }}>
+                      Temporary password: <strong style={{ fontFamily: "monospace" }}>{tempPassword}</strong>
+                    </p>
+                    <Link
+                      href="/login"
+                      style={{ display: "inline-block", marginTop: 12, fontSize: 13.5, fontWeight: 600, color: "#D6362B", textDecoration: "none" }}
+                    >
+                      Sign in to track your status &rarr;
+                    </Link>
+                  </div>
+                )}
               </div>
             ) : (
               <form onSubmit={handleSubmit}>

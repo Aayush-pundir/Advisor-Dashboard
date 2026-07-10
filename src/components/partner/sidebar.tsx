@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/actions/auth";
 
 const links = [
-  { href: "/partner", label: "Dashboard" },
   { href: "/partner/leads", label: "Leads & Pipeline" },
   { href: "/partner/leads/bulk-upload", label: "Bulk Upload Leads" },
   { href: "/partner/deals", label: "Deal Registration" },
@@ -25,9 +24,11 @@ const links = [
 export function PartnerSidebar({
   firmName,
   unreadCount = 0,
+  isCertified = true,
 }: {
   firmName: string;
   unreadCount?: number;
+  isCertified?: boolean;
 }) {
   const pathname = usePathname();
 
@@ -38,6 +39,15 @@ export function PartnerSidebar({
         <p className="text-xs text-muted">Advisor Partner Portal</p>
       </div>
       <nav className="flex flex-1 flex-col gap-1 p-3">
+        <Link
+          href="/partner"
+          className={cn(
+            "rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-brand-light hover:text-brand-dark",
+            pathname === "/partner" && "bg-brand-light text-brand-dark",
+          )}
+        >
+          {isCertified ? "Dashboard" : "Onboarding Status"}
+        </Link>
         <Link
           href="/partner/notifications"
           className={cn(
@@ -52,18 +62,19 @@ export function PartnerSidebar({
             </span>
           )}
         </Link>
-        {links.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className={cn(
-              "rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-brand-light hover:text-brand-dark",
-              pathname === l.href && "bg-brand-light text-brand-dark",
-            )}
-          >
-            {l.label}
-          </Link>
-        ))}
+        {isCertified &&
+          links.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={cn(
+                "rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-brand-light hover:text-brand-dark",
+                pathname === l.href && "bg-brand-light text-brand-dark",
+              )}
+            >
+              {l.label}
+            </Link>
+          ))}
         <Link
           href="/partner/settings"
           className={cn(

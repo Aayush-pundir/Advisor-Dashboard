@@ -6,8 +6,8 @@ import { ASSET_KEYS, CURRENT_MOU_VERSION } from "@/lib/enums";
 import type { UserRole } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getAuthedUser, hashPassword } from "@/lib/auth";
-import { notifyPartnerUsers } from "@/lib/notify";
+import { getAuthedUser, getSession, hashPassword } from "@/lib/auth";
+import { notifyPartnerUsers, notifyInternalUsers } from "@/lib/notify";
 import { canManagePartners, ForbiddenError } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { pickNextSalesRep } from "@/lib/assignment";
@@ -20,7 +20,33 @@ async function requirePartnerManager() {
   return user;
 }
 
-const DEFAULT_PARTNER_PASSWORD = "omnicard123";
+function generateTempPassword() {
+  return `omc-${Math.random().toString(36).slice(2, 8)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/**
+ * Creates the partner's login the moment they submit interest (MOU or
+ * signup form) — not at certification — so they can sign in immediately
+ * and track their own onboarding status instead of waiting in the dark
+ * until an admin certifies them. No email provider is configured, so the
+ * temp password is surfaced directly on screen ("dev mode"), same pattern
+ * as the forgot-password reset link.
+ */
+async function createPartnerLogin(partner: { id: string; email: string; contactName: string }) {
+  const tempPassword = generateTempPassword();
+  await db.user.create({
+    data: {
+      email: partner.email,
+      passwordHash: await hashPassword(tempPassword),
+      name: partner.contactName,
+      role: "CA",
+      partnerId: partner.id,
+      firmRole: "OWNER",
+      mustChangePassword: true,
+    },
+  });
+  return tempPassword;
+}
 
 /** Step 1.2 — CA interest capture from the public microsite. */
 export async function signupPartnerAction(formData: FormData) {
@@ -64,7 +90,9 @@ export async function signupPartnerAction(formData: FormData) {
     data: { partnerId: partner.id, type: "CLICK", meta: "microsite_signup" },
   });
 
-  redirect(`/signup/thank-you?slug=${partner.slug}`);
+  const tempPassword = await createPartnerLogin(partner);
+
+  redirect(`/signup/thank-you?slug=${partner.slug}&temp=${encodeURIComponent(tempPassword)}`);
 }
 
 /**
@@ -73,7 +101,9 @@ export async function signupPartnerAction(formData: FormData) {
  * redirecting, so the modal can show an inline signed confirmation without
  * navigating away from the document.
  */
-export async function signMouAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+export async function signMouAction(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string; tempPassword?: string }> {
   const firmName = String(formData.get("firmName") ?? "").trim();
   const contactName = String(formData.get("contactName") ?? "").trim();
   const designation = String(formData.get("designation") ?? "").trim();
@@ -106,6 +136,7 @@ export async function signMouAction(formData: FormData): Promise<{ ok: boolean; 
       state,
       icaiNumber,
       slug,
+      designation: designation || "Authorized Signatory",
       referralCode: randomReferralCode(firmName),
       stage: "LEAD",
       mouVersion: CURRENT_MOU_VERSION,
@@ -120,7 +151,9 @@ export async function signMouAction(formData: FormData): Promise<{ ok: boolean; 
     },
   });
 
-  return { ok: true };
+  const tempPassword = await createPartnerLogin(partner);
+
+  return { ok: true, tempPassword };
 }
 
 /** Step 6.1 — client lead captured on a CA's co-branded landing page. */
@@ -196,17 +229,7 @@ export async function certifyPartnerAction(partnerId: string) {
 
   const existingUser = await db.user.findFirst({ where: { partnerId } });
   if (!existingUser) {
-    await db.user.create({
-      data: {
-        email: partner.email,
-        passwordHash: await hashPassword(DEFAULT_PARTNER_PASSWORD),
-        name: partner.contactName,
-        role: "CA",
-        partnerId: partner.id,
-        firmRole: "OWNER",
-        mustChangePassword: true,
-      },
-    });
+    await createPartnerLogin(partner);
   }
 
   await notifyPartnerUsers(partner.id, {
@@ -229,27 +252,117 @@ export async function certifyPartnerAction(partnerId: string) {
   revalidatePath(`/admin/partners/${partnerId}`);
 }
 
-/** Admin: advance a partner from Lead through the meeting/onboarding stages. */
-export async function advancePartnerStageAction(
-  partnerId: string,
-  stage: "MEETING_SCHEDULED" | "ONBOARDING",
-) {
+/** Admin: accept a submitted MOU/lead and schedule the intro call — the
+ * first review step in the advisor onboarding journey. */
+export async function acceptPartnerLeadAction(partnerId: string) {
   const actor = await requirePartnerManager();
 
-  const partner = await db.partner.update({ where: { id: partnerId }, data: { stage } });
-  await db.activityEvent.create({
-    data: { partnerId, type: "CLICK", meta: `stage:${stage}` },
+  const partner = await db.partner.update({
+    where: { id: partnerId },
+    data: { stage: "MEETING_SCHEDULED", acceptedAt: new Date() },
+  });
+
+  await notifyPartnerUsers(partner.id, {
+    type: "PARTNER_ACCEPTED",
+    title: "Your application has been accepted!",
+    body: "The OmniCard partnerships team will reach out to schedule an intro call.",
+    href: "/partner",
   });
 
   await logAudit({
     actorId: actor.id,
     actorName: actor.name,
-    action: "ADVANCE_PARTNER_STAGE",
+    action: "ACCEPT_PARTNER_LEAD",
     targetType: "Partner",
     targetId: partnerId,
-    meta: `${partner.firmName} -> ${stage}`,
+    meta: partner.firmName,
   });
 
   revalidatePath("/admin/partners");
   revalidatePath(`/admin/partners/${partnerId}`);
+  revalidatePath("/partner");
+}
+
+/** Admin: countersign the MOU on OmniCard's side. */
+export async function countersignMouAction(partnerId: string) {
+  const actor = await requirePartnerManager();
+
+  const partner = await db.partner.update({
+    where: { id: partnerId },
+    data: { mouCountersignedAt: new Date(), stage: "ONBOARDING", icaiVerified: true, msaSignedAt: new Date() },
+  });
+
+  await notifyPartnerUsers(partner.id, {
+    type: "MOU_COUNTERSIGNED",
+    title: "Your MOU has been countersigned",
+    body: "Next step: complete your certification demo. Request a slot any time from your dashboard.",
+    href: "/partner",
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "COUNTERSIGN_MOU",
+    targetType: "Partner",
+    targetId: partnerId,
+    meta: partner.firmName,
+  });
+
+  revalidatePath("/admin/partners");
+  revalidatePath(`/admin/partners/${partnerId}`);
+  revalidatePath("/partner");
+}
+
+/** Admin: schedule (or nudge for) the certification demo — works whether the
+ * partner requested it first or the team is proactively reaching out. */
+export async function scheduleDemoAction(partnerId: string, demoDate: string) {
+  const actor = await requirePartnerManager();
+
+  const demoScheduledAt = demoDate ? new Date(demoDate) : new Date();
+  const partner = await db.partner.update({
+    where: { id: partnerId },
+    data: { demoScheduledAt },
+  });
+
+  await notifyPartnerUsers(partner.id, {
+    type: "DEMO_SCHEDULED",
+    title: "Your certification demo is scheduled",
+    body: `Scheduled for ${demoScheduledAt.toLocaleDateString("en-IN")} — attend it to get certified.`,
+    href: "/partner",
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "SCHEDULE_DEMO",
+    targetType: "Partner",
+    targetId: partnerId,
+    meta: `${partner.firmName} -> ${demoScheduledAt.toISOString()}`,
+  });
+
+  revalidatePath("/admin/partners");
+  revalidatePath(`/admin/partners/${partnerId}`);
+  revalidatePath("/partner");
+}
+
+/** Partner: request a certification demo slot — the other direction of
+ * scheduleDemoAction, for when the partner wants to move faster than the
+ * team reaching out to them. */
+export async function requestDemoAction() {
+  const session = await getSession();
+  if (!session?.partnerId) return;
+
+  const partner = await db.partner.update({
+    where: { id: session.partnerId },
+    data: { demoRequestedAt: new Date() },
+  });
+
+  await notifyInternalUsers(["ADMIN", "PARTNER_MANAGER"], {
+    type: "DEMO_REQUESTED",
+    title: `${partner.firmName} requested a certification demo`,
+    href: `/admin/partners/${partner.id}`,
+  });
+
+  revalidatePath("/partner");
+  revalidatePath(`/admin/partners/${partner.id}`);
 }

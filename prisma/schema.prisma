@@ -115,11 +115,15 @@ model Partner {
   icaiNumber   String?
   icaiVerified Boolean   @default(false)
   msaSignedAt  DateTime?
+  designation  String? // signatory designation captured on the MOU
 
-  stage           String    @default("LEAD")
-  certifiedAt     DateTime?
-  demoScheduledAt DateTime?
-  demoAttendedAt  DateTime?
+  stage              String    @default("LEAD")
+  acceptedAt         DateTime? // admin accepted the lead & scheduled an intro call
+  mouCountersignedAt DateTime? // OmniCard team countersigned the MOU
+  demoRequestedAt    DateTime? // partner requested a demo/training slot
+  certifiedAt        DateTime?
+  demoScheduledAt    DateTime?
+  demoAttendedAt     DateTime?
 
   // ICP scoring — Step 1.2 (100 pts total)
   icpClients  Int @default(0) // /25
@@ -166,6 +170,7 @@ model Partner {
   mdfRequests           MdfRequest[]
   supportTickets        SupportTicket[]
   certifications        CertificationProgress[]
+  marketingContacts     MarketingContact[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -228,6 +233,26 @@ model Lead {
   @@index([partnerId])
   @@index([stage])
   @@index([assignedToId])
+}
+
+// ---------------------------------------------------------------------------
+// Co-branded marketing contact list — a partner's full client roster,
+// uploaded purely for masked campaign targeting. Deliberately NOT the same
+// model as Lead: no pipeline stage, no deal value, no commission — this is
+// a contact list, not a sales pipeline.
+// ---------------------------------------------------------------------------
+
+model MarketingContact {
+  id          String   @id @default(cuid())
+  partnerId   String
+  partner     Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  contactName String
+  phone       String
+  email       String?
+  city        String?
+  createdAt   DateTime @default(now())
+
+  @@index([partnerId])
 }
 
 // ---------------------------------------------------------------------------

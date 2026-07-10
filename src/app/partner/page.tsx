@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { getPartnerDashboard } from "@/lib/queries/partner";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +7,16 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/utils";
 import { LEAD_STAGE_LABELS, type LeadStage } from "@/lib/enums";
+import { OnboardingTimeline } from "@/components/partner/onboarding-timeline";
 
 export default async function PartnerDashboardPage() {
   const session = await getSession();
+  const partnerRecord = await db.partner.findUniqueOrThrow({ where: { id: session!.partnerId! } });
+
+  if (partnerRecord.stage !== "CERTIFIED" && partnerRecord.stage !== "ACTIVE") {
+    return <OnboardingTimeline partner={partnerRecord} />;
+  }
+
   const data = await getPartnerDashboard(session!.partnerId!);
   const { partner, pipeline, closedWon, totalEarned, pendingEarnings, clientsThisQuarter, nextTier, cityRank, cityTotal } = data;
 

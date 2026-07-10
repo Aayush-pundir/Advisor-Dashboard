@@ -14,7 +14,12 @@ import {
   type PartnerStage,
   type CertLevel,
 } from "@/lib/enums";
-import { advancePartnerStageAction, certifyPartnerAction } from "@/app/actions/partner";
+import {
+  acceptPartnerLeadAction,
+  countersignMouAction,
+  certifyPartnerAction,
+} from "@/app/actions/partner";
+import { ScheduleDemoForm } from "@/components/admin/schedule-demo-form";
 import { getAuthedUser } from "@/lib/auth";
 import { canManagePartners } from "@/lib/permissions";
 import type { UserRole } from "@/lib/enums";
@@ -110,32 +115,67 @@ export default async function AdminPartnerDetailPage({
         </Card>
       </div>
 
-      {/* Onboarding actions — Step 1.3-1.4 / Step 4 */}
+      {/* Onboarding journey — Step 1.3-1.4 / Step 4 */}
       {canManage && partner.stage !== "CERTIFIED" && partner.stage !== "ACTIVE" && (
         <Card>
           <CardHeader>
-            <CardTitle>Onboarding actions</CardTitle>
+            <CardTitle>Onboarding journey</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            {partner.stage === "LEAD" && (
-              <form action={advancePartnerStageAction.bind(null, partner.id, "MEETING_SCHEDULED")}>
-                <Button size="sm" variant="outline" type="submit">
-                  Schedule meeting & demo
-                </Button>
-              </form>
-            )}
-            {(partner.stage === "LEAD" || partner.stage === "MEETING_SCHEDULED") && (
-              <form action={advancePartnerStageAction.bind(null, partner.id, "ONBOARDING")}>
-                <Button size="sm" variant="outline" type="submit">
-                  Verify ICAI + send MSA
-                </Button>
-              </form>
-            )}
-            <form action={certifyPartnerAction.bind(null, partner.id)}>
-              <Button size="sm" type="submit">
-                Mark demo attended — Certify + issue asset kit
-              </Button>
-            </form>
+          <CardContent className="flex flex-col gap-4">
+            <ol className="flex flex-col gap-2 text-sm">
+              <li className="flex items-center gap-2">
+                <span className={partner.acceptedAt ? "text-emerald-600" : "text-muted"}>
+                  {partner.acceptedAt ? "✓" : "○"}
+                </span>
+                MOU submitted &amp; accepted{partner.acceptedAt && ` — ${formatDate(partner.acceptedAt)}`}
+              </li>
+              <li className="flex items-center gap-2">
+                <span className={partner.mouCountersignedAt ? "text-emerald-600" : "text-muted"}>
+                  {partner.mouCountersignedAt ? "✓" : "○"}
+                </span>
+                MOU countersigned by OmniCard{partner.mouCountersignedAt && ` — ${formatDate(partner.mouCountersignedAt)}`}
+              </li>
+              <li className="flex items-center gap-2">
+                <span className={partner.demoScheduledAt ? "text-emerald-600" : "text-muted"}>
+                  {partner.demoScheduledAt ? "✓" : "○"}
+                </span>
+                Certification demo scheduled{partner.demoScheduledAt && ` — ${formatDate(partner.demoScheduledAt)}`}
+                {partner.demoRequestedAt && !partner.demoScheduledAt && (
+                  <Badge variant="warning">Partner requested a slot</Badge>
+                )}
+              </li>
+              <li className="flex items-center gap-2">
+                <span className={partner.demoAttendedAt ? "text-emerald-600" : "text-muted"}>
+                  {partner.demoAttendedAt ? "✓" : "○"}
+                </span>
+                Demo attended &amp; certified
+              </li>
+            </ol>
+
+            <div className="flex flex-wrap gap-3 border-t border-border pt-4">
+              {partner.stage === "LEAD" && (
+                <form action={acceptPartnerLeadAction.bind(null, partner.id)}>
+                  <Button size="sm" type="submit">
+                    Accept &amp; schedule intro call
+                  </Button>
+                </form>
+              )}
+              {partner.stage === "MEETING_SCHEDULED" && (
+                <form action={countersignMouAction.bind(null, partner.id)}>
+                  <Button size="sm" type="submit">
+                    Countersign MOU
+                  </Button>
+                </form>
+              )}
+              {partner.stage === "ONBOARDING" && <ScheduleDemoForm partnerId={partner.id} />}
+              {partner.stage === "ONBOARDING" && (
+                <form action={certifyPartnerAction.bind(null, partner.id)}>
+                  <Button size="sm" variant="outline" type="submit">
+                    Mark demo attended — Certify + issue asset kit
+                  </Button>
+                </form>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
