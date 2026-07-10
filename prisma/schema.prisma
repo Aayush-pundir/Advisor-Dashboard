@@ -20,9 +20,80 @@ model User {
   passwordHash String
   name         String
   role         String
-  partnerId    String?  @unique
+  partnerId    String?
   partner      Partner? @relation(fields: [partnerId], references: [id])
-  createdAt    DateTime @default(now())
+  firmRole     String   @default("OWNER") // OWNER | MEMBER — multiple users can share a Partner (firm)
+
+  mustChangePassword Boolean   @default(true)
+  passwordChangedAt  DateTime?
+  sessionVersion     Int       @default(1) // bump to invalidate all issued sessions ("sign out everywhere")
+  lastLoginAt        DateTime?
+  active             Boolean   @default(true)
+
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  passwordResetTokens PasswordResetToken[]
+  auditLogEntries     AuditLog[]
+  notifications       Notification[]
+
+  @@index([partnerId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Login attempts for basic rate-limiting / lockout.
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt])
+}
+
+// In-app notification feed — surfaces milestones, leads, commissions, campaigns.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String?
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([userId, readAt])
+}
+
+// Who did what, for internal ops accountability.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  actorName  String
+  action     String
+  targetType String
+  targetId   String?
+  meta       String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([createdAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -59,12 +130,21 @@ model Partner {
 
   badgeTier    String @default("NONE")
   referralCode String @unique
+  mouVersion   String @default("v1")
+
+  // Payout details — Phase 1 advisor account layer
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankIfsc          String?
+  upiId             String?
+  pan               String?
+  gstNumber         String?
 
   referredById String?
   referredBy   Partner?  @relation("PartnerReferrals", fields: [referredById], references: [id])
   referrals    Partner[] @relation("PartnerReferrals")
 
-  user                  User?
+  users                 User[]
   assetKitItems         AssetKitItem[]
   leads                 Lead[]
   commissions           Commission[]

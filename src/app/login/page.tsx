@@ -2,12 +2,18 @@ import { loginAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
+const ERROR_MESSAGES: Record<string, string> = {
+  invalid: "Invalid email or password. Try again.",
+  rate_limited: "Too many failed attempts. Please wait 15 minutes and try again.",
+  inactive: "This account has been deactivated. Contact your OmniCard partner manager.",
+};
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; reset?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, reset } = await searchParams;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-light px-4">
@@ -31,7 +37,12 @@ export default async function LoginPage({
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Password</label>
+              <Link href="/forgot-password" className="text-xs text-brand hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <input
               name="password"
               type="password"
@@ -42,7 +53,12 @@ export default async function LoginPage({
           </div>
           {error && (
             <p className="text-sm text-rose-600">
-              Invalid email or password. Try again.
+              {ERROR_MESSAGES[error] ?? ERROR_MESSAGES.invalid}
+            </p>
+          )}
+          {reset && !error && (
+            <p className="text-sm text-emerald-600">
+              Password reset. Sign in with your new password.
             </p>
           )}
           <Button type="submit" className="mt-2 w-full">

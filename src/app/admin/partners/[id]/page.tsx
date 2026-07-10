@@ -13,6 +13,9 @@ import {
   type PartnerStage,
 } from "@/lib/enums";
 import { advancePartnerStageAction, certifyPartnerAction } from "@/app/actions/partner";
+import { getAuthedUser } from "@/lib/auth";
+import { canManagePartners } from "@/lib/permissions";
+import type { UserRole } from "@/lib/enums";
 
 const assetStatusVariant: Record<AssetStatus, "neutral" | "warning" | "success"> = {
   PENDING: "neutral",
@@ -36,6 +39,9 @@ export default async function AdminPartnerDetailPage({
     },
   });
   if (!partner) notFound();
+
+  const actor = await getAuthedUser();
+  const canManage = actor ? canManagePartners(actor.role as UserRole) : false;
 
   const score = icpTotal(partner);
   const deliveredAssets = partner.assetKitItems.filter((a) => a.status === "DELIVERED").length;
@@ -76,7 +82,7 @@ export default async function AdminPartnerDetailPage({
       </div>
 
       {/* Onboarding actions — Step 1.3-1.4 / Step 4 */}
-      {partner.stage !== "CERTIFIED" && partner.stage !== "ACTIVE" && (
+      {canManage && partner.stage !== "CERTIFIED" && partner.stage !== "ACTIVE" && (
         <Card>
           <CardHeader>
             <CardTitle>Onboarding actions</CardTitle>

@@ -3,7 +3,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
 import { formatINR, formatDate } from "@/lib/utils";
-import type { CommissionStatus } from "@/lib/enums";
+import type { CommissionStatus, UserRole } from "@/lib/enums";
+import { getAuthedUser } from "@/lib/auth";
+import { canViewCommissions } from "@/lib/permissions";
+import { CsvExportButton } from "@/components/admin/csv-export-button";
 
 const statusVariant: Record<CommissionStatus, "neutral" | "warning" | "success"> = {
   PENDING: "neutral",
@@ -12,6 +15,16 @@ const statusVariant: Record<CommissionStatus, "neutral" | "warning" | "success">
 };
 
 export default async function AdminCommissionsPage() {
+  const actor = await getAuthedUser();
+  if (!actor || !canViewCommissions(actor.role as UserRole)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <p className="text-lg font-semibold">You don&apos;t have access to the commission ledger</p>
+        <p className="mt-1 text-muted">This view is limited to Admin, Partner Manager, and Sales roles.</p>
+      </div>
+    );
+  }
+
   const commissions = await db.commission.findMany({
     include: { partner: { select: { firmName: true } } },
     orderBy: { createdAt: "desc" },
@@ -32,12 +45,15 @@ export default async function AdminCommissionsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-bold">Commission Ledger</h1>
-        <p className="mt-1 text-muted">
-          15% Year-1 + 5% trailing advisory fee, auto-credited to CA wallets
-          on client go-live (Step 1.1 / Step 6.6).
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Commission Ledger</h1>
+          <p className="mt-1 text-muted">
+            15% Year-1 + 5% trailing advisory fee, auto-credited to CA wallets
+            on client go-live (Step 1.1 / Step 6.6).
+          </p>
+        </div>
+        <CsvExportButton href="/admin/commissions/export" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-4">

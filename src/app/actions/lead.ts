@@ -3,7 +3,12 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { YEAR1_RATE, TRAILING_RATE, BADGE_TIER_META } from "@/lib/enums";
-import type { LeadStage, BadgeTier } from "@/lib/enums";
+import type { LeadStage, BadgeTier, UserRole } from "@/lib/enums";
+import { notifyPartnerUsers } from "@/lib/notify";
+import { formatINR } from "@/lib/utils";
+import { getAuthedUser } from "@/lib/auth";
+import { canManageLeads, ForbiddenError } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
 
 const TIER_ORDER: Exclude<BadgeTier, "NONE">[] = ["SILVER", "GOLD", "PLATINUM"];
 
@@ -15,6 +20,11 @@ function quarterLabel(d: Date) {
 /** Step 6 — advance a lead through the sales pipeline; closing triggers
  * commissions (Step 6.6 / Step 10) and milestone badge checks (Step 4/8). */
 export async function advanceLeadStageAction(leadId: string, stage: LeadStage) {
+  const actor = await getAuthedUser();
+  if (!actor || !canManageLeads(actor.role as UserRole)) {
+    throw new ForbiddenError("manage leads");
+  }
+
   const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } });
 
   const data: { stage: LeadStage; contactedAt?: Date; demoAt?: Date; closedAt?: Date } = {
@@ -59,7 +69,24 @@ export async function advanceLeadStageAction(leadId: string, stage: LeadStage) {
     }
 
     await checkMilestoneBadges(lead.partnerId);
+
+    const total = Math.round(lead.dealValue * (YEAR1_RATE + TRAILING_RATE));
+    await notifyPartnerUsers(lead.partnerId, {
+      type: "COMMISSION_CREDITED",
+      title: `${formatINR(total)} credited for ${lead.businessName}`,
+      body: "Year-1 and trailing commission have been credited to your wallet.",
+      href: "/partner/leads",
+    });
   }
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "ADVANCE_LEAD_STAGE",
+    targetType: "Lead",
+    targetId: leadId,
+    meta: `${lead.businessName} -> ${stage}`,
+  });
 
   revalidatePath("/admin/leads");
   revalidatePath(`/admin/partners/${lead.partnerId}`);
@@ -93,5 +120,12 @@ async function checkMilestoneBadges(partnerId: string) {
       data: { partnerId, tier, quarter, clientsAtMilestone: clientsThisQuarter },
     });
     await db.partner.update({ where: { id: partnerId }, data: { badgeTier: tier } });
+
+    await notifyPartnerUsers(partnerId, {
+      type: "BADGE_EARNED",
+      title: `${tier} Advisor badge earned!`,
+      body: `${clientsThisQuarter} clients closed this quarter — ${BADGE_TIER_META[tier].gift}.`,
+      href: "/partner/badges",
+    });
   }
 }

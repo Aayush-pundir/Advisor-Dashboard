@@ -2,10 +2,19 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { getSession } from "@/lib/auth";
+import { getSession, getAuthedUser } from "@/lib/auth";
+import { notifyPartnerUsers } from "@/lib/notify";
+import { canManageCampaigns, ForbiddenError } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
+import type { UserRole } from "@/lib/enums";
 
 /** Step 3.11 / Step 7 — Marketing Ops drafts a campaign for CA approval. */
 export async function createCampaignAction(formData: FormData) {
+  const actor = await getAuthedUser();
+  if (!actor || !canManageCampaigns(actor.role as UserRole)) {
+    throw new ForbiddenError("manage campaigns");
+  }
+
   const partnerId = String(formData.get("partnerId") ?? "");
   const type = String(formData.get("type") ?? "EMAIL");
   const title = String(formData.get("title") ?? "").trim();
@@ -13,6 +22,21 @@ export async function createCampaignAction(formData: FormData) {
 
   await db.campaign.create({
     data: { partnerId, type, title, status: "PENDING_APPROVAL" },
+  });
+
+  await notifyPartnerUsers(partnerId, {
+    type: "CAMPAIGN_PENDING",
+    title: `New campaign ready for your approval: ${title}`,
+    body: "OmniCard drafted this campaign for your clients — approve it in one click.",
+    href: "/partner/campaigns",
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "CREATE_CAMPAIGN",
+    targetType: "Campaign",
+    meta: title,
   });
 
   revalidatePath("/admin/campaigns");

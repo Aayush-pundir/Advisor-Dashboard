@@ -208,3 +208,7 @@ export function ltvCommissionPerClient(acv: number, annualChurn: number) {
   const trailing = acv * TRAILING_RATE * expectedTrailingYears(annualChurn);
   return { year1, trailing, total: year1 + trailing };
 }
+
+/** Bump when the MOU document text changes; each Partner records which
+ * version they accepted (Partner.mouVersion). */
+export const CURRENT_MOU_VERSION = "v1";

@@ -2,10 +2,22 @@
 
 import { db } from "@/lib/db";
 import { slugify, randomReferralCode } from "@/lib/slug";
-import { ASSET_KEYS } from "@/lib/enums";
+import { ASSET_KEYS, CURRENT_MOU_VERSION } from "@/lib/enums";
+import type { UserRole } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { hashPassword } from "@/lib/auth";
+import { getAuthedUser, hashPassword } from "@/lib/auth";
+import { notifyPartnerUsers } from "@/lib/notify";
+import { canManagePartners, ForbiddenError } from "@/lib/permissions";
+import { logAudit } from "@/lib/audit";
+
+async function requirePartnerManager() {
+  const user = await getAuthedUser();
+  if (!user || !canManagePartners(user.role as UserRole)) {
+    throw new ForbiddenError("manage partners");
+  }
+  return user;
+}
 
 const DEFAULT_PARTNER_PASSWORD = "omnicard123";
 
@@ -95,6 +107,7 @@ export async function signMouAction(formData: FormData): Promise<{ ok: boolean; 
       slug,
       referralCode: randomReferralCode(firmName),
       stage: "LEAD",
+      mouVersion: CURRENT_MOU_VERSION,
     },
   });
 
@@ -143,6 +156,8 @@ export async function captureLeadAction(formData: FormData) {
 
 /** Admin: move a partner through onboarding — Step 1.4 / Step 4 certification. */
 export async function certifyPartnerAction(partnerId: string) {
+  const actor = await requirePartnerManager();
+
   const partner = await db.partner.update({
     where: { id: partnerId },
     data: {
@@ -175,7 +190,7 @@ export async function certifyPartnerAction(partnerId: string) {
     data: { partnerId: partner.id, type: "WEBINAR_ATTEND", meta: "demo_certified" },
   });
 
-  const existingUser = await db.user.findUnique({ where: { partnerId } });
+  const existingUser = await db.user.findFirst({ where: { partnerId } });
   if (!existingUser) {
     await db.user.create({
       data: {
@@ -184,9 +199,27 @@ export async function certifyPartnerAction(partnerId: string) {
         name: partner.contactName,
         role: "CA",
         partnerId: partner.id,
+        firmRole: "OWNER",
+        mustChangePassword: true,
       },
     });
   }
+
+  await notifyPartnerUsers(partner.id, {
+    type: "CERTIFIED",
+    title: "You're certified!",
+    body: "Your Implementation Advisor badge and asset kit are ready.",
+    href: "/partner/assets",
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "CERTIFY_PARTNER",
+    targetType: "Partner",
+    targetId: partner.id,
+    meta: partner.firmName,
+  });
 
   revalidatePath("/admin/partners");
   revalidatePath(`/admin/partners/${partnerId}`);
@@ -197,10 +230,22 @@ export async function advancePartnerStageAction(
   partnerId: string,
   stage: "MEETING_SCHEDULED" | "ONBOARDING",
 ) {
-  await db.partner.update({ where: { id: partnerId }, data: { stage } });
+  const actor = await requirePartnerManager();
+
+  const partner = await db.partner.update({ where: { id: partnerId }, data: { stage } });
   await db.activityEvent.create({
     data: { partnerId, type: "CLICK", meta: `stage:${stage}` },
   });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "ADVANCE_PARTNER_STAGE",
+    targetType: "Partner",
+    targetId: partnerId,
+    meta: `${partner.firmName} -> ${stage}`,
+  });
+
   revalidatePath("/admin/partners");
   revalidatePath(`/admin/partners/${partnerId}`);
 }

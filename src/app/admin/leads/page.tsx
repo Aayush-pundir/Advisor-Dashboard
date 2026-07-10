@@ -1,14 +1,22 @@
 import { db } from "@/lib/db";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { formatINR, formatDate } from "@/lib/utils";
 import { LEAD_STAGES, LEAD_STAGE_LABELS } from "@/lib/enums";
+import type { LeadStage, UserRole } from "@/lib/enums";
 import { LeadStageSelect } from "@/components/admin/lead-stage-select";
+import { getAuthedUser } from "@/lib/auth";
+import { canManageLeads } from "@/lib/permissions";
 
 export default async function AdminLeadsPage() {
-  const leads = await db.lead.findMany({
-    include: { partner: { select: { firmName: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const [leads, actor] = await Promise.all([
+    db.lead.findMany({
+      include: { partner: { select: { firmName: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    getAuthedUser(),
+  ]);
+  const canManage = actor ? canManageLeads(actor.role as UserRole) : false;
 
   return (
     <div>
@@ -43,12 +51,16 @@ export default async function AdminLeadsPage() {
                 <td className="p-3">{formatINR(l.dealValue)}</td>
                 <td className="p-3 text-muted">{formatDate(l.createdAt)}</td>
                 <td className="p-3">
-                  <LeadStageSelect
-                    leadId={l.id}
-                    current={l.stage}
-                    stages={LEAD_STAGES}
-                    labels={LEAD_STAGE_LABELS}
-                  />
+                  {canManage ? (
+                    <LeadStageSelect
+                      leadId={l.id}
+                      current={l.stage}
+                      stages={LEAD_STAGES}
+                      labels={LEAD_STAGE_LABELS}
+                    />
+                  ) : (
+                    <Badge variant="neutral">{LEAD_STAGE_LABELS[l.stage as LeadStage]}</Badge>
+                  )}
                 </td>
               </tr>
             ))}

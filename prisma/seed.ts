@@ -47,6 +47,10 @@ function randomBetween(min: number, max: number) {
 async function main() {
   console.log("Seeding database...");
 
+  await db.notification.deleteMany();
+  await db.auditLog.deleteMany();
+  await db.passwordResetToken.deleteMany();
+  await db.loginAttempt.deleteMany();
   await db.badge.deleteMany();
   await db.commission.deleteMany();
   await db.referralBonus.deleteMany();
@@ -58,12 +62,13 @@ async function main() {
   await db.partner.deleteMany();
   await db.kpiSnapshot.deleteMany();
 
-  await db.user.create({
+  const admin = await db.user.create({
     data: {
       email: "admin@omnicard.in",
       passwordHash: await bcrypt.hash(PASSWORD, 10),
       name: "Ananya Rao",
       role: "ADMIN",
+      mustChangePassword: false,
     },
   });
   await db.user.create({
@@ -72,6 +77,25 @@ async function main() {
       passwordHash: await bcrypt.hash(PASSWORD, 10),
       name: "Karan Mehra",
       role: "PARTNER_MANAGER",
+      mustChangePassword: false,
+    },
+  });
+  await db.user.create({
+    data: {
+      email: "sales@omnicard.in",
+      passwordHash: await bcrypt.hash(PASSWORD, 10),
+      name: "Divya Nair",
+      role: "SALES",
+      mustChangePassword: false,
+    },
+  });
+  await db.user.create({
+    data: {
+      email: "marketing@omnicard.in",
+      passwordHash: await bcrypt.hash(PASSWORD, 10),
+      name: "Farhan Sheikh",
+      role: "MARKETING_OPS",
+      mustChangePassword: false,
     },
   });
 
@@ -111,6 +135,8 @@ async function main() {
           name: f.contactName,
           role: "CA",
           partnerId: partner.id,
+          firmRole: "OWNER",
+          mustChangePassword: false,
         },
       });
 
@@ -214,6 +240,85 @@ async function main() {
       data: { referrerId: referrer, referredId: referred, amount: 5000, status: "CREDITED" },
     });
   }
+
+  // Flagship demo account (Sharma & Associates) — payout details, a teammate,
+  // and a notification feed so Phase 1 features have something to show.
+  const flagship = partnerIds[0];
+  if (flagship) {
+    await db.partner.update({
+      where: { id: flagship },
+      data: {
+        bankAccountName: "Sharma & Associates",
+        bankAccountNumber: "50100123456789",
+        bankIfsc: "HDFC0001234",
+        upiId: "sharma.associates@okhdfcbank",
+        pan: "AAAPS1234C",
+        gstNumber: "07AAAPS1234C1ZQ",
+      },
+    });
+
+    const flagshipUser = await db.user.findFirst({ where: { partnerId: flagship } });
+    await db.user.create({
+      data: {
+        email: "rohit.sharma.associate@camail.in",
+        passwordHash: await bcrypt.hash(PASSWORD, 10),
+        name: "Rohit Sharma",
+        role: "CA",
+        partnerId: flagship,
+        firmRole: "MEMBER",
+        mustChangePassword: false,
+      },
+    });
+
+    if (flagshipUser) {
+      await db.notification.createMany({
+        data: [
+          {
+            userId: flagshipUser.id,
+            type: "COMMISSION_CREDITED",
+            title: "Rs 13,500 credited for Northwind Traders Delhi",
+            body: "Year-1 and trailing commission have been credited to your wallet.",
+            href: "/partner/leads",
+          },
+          {
+            userId: flagshipUser.id,
+            type: "BADGE_EARNED",
+            title: "GOLD Advisor badge earned!",
+            body: "10 clients closed this quarter — smartwatch / premium gadget + Rs 15,000 voucher.",
+            href: "/partner/badges",
+            readAt: new Date(),
+          },
+          {
+            userId: flagshipUser.id,
+            type: "CAMPAIGN_PENDING",
+            title: "New campaign ready for your approval: WhatsApp Nudge Pack",
+            body: "OmniCard drafted this campaign for your clients — approve it in one click.",
+            href: "/partner/campaigns",
+          },
+        ],
+      });
+    }
+  }
+
+  // A few audit log entries so the admin Audit Log page isn't empty
+  await db.auditLog.createMany({
+    data: [
+      {
+        actorId: admin.id,
+        actorName: admin.name,
+        action: "CERTIFY_PARTNER",
+        targetType: "Partner",
+        meta: "Sharma & Associates",
+      },
+      {
+        actorId: admin.id,
+        actorName: admin.name,
+        action: "ADVANCE_LEAD_STAGE",
+        targetType: "Lead",
+        meta: "Northwind Traders Delhi -> CLOSED_WON",
+      },
+    ],
+  });
 
   // Weekly KPI snapshots for the last 6 weeks (Step 9)
   for (let i = 5; i >= 0; i--) {

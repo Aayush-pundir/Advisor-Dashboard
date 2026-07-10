@@ -5,6 +5,7 @@ import { FunnelChart } from "@/components/admin/funnel-chart";
 import { formatINR } from "@/lib/utils";
 import { KPI_TARGETS } from "@/lib/plan-content";
 import { PARTNER_STAGE_LABELS, LEAD_STAGE_LABELS, type PartnerStage, type LeadStage } from "@/lib/enums";
+import { CsvExportButton } from "@/components/admin/csv-export-button";
 
 export default async function AdminOverviewPage() {
   const {
@@ -27,12 +28,15 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-bold">Program KPI Overview</h1>
-        <p className="mt-1 text-muted">
-          Step 9 — weekly funnel review, tracked end-to-end from onboarding
-          to revenue.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Program KPI Overview</h1>
+          <p className="mt-1 text-muted">
+            Step 9 — weekly funnel review, tracked end-to-end from onboarding
+            to revenue.
+          </p>
+        </div>
+        <CsvExportButton href="/admin/kpi-export" label="Export KPI CSV" />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

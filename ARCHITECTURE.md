@@ -133,7 +133,78 @@ npm run dev
 Demo logins (seeded, password `omnicard123` for all):
 - Admin: `admin@omnicard.in`
 - Partner manager: `ops@omnicard.in`
-- CA partner (fully active, ACTIVE stage, Gold badge): `priya.sharma@camail.in`
+- Sales: `sales@omnicard.in`
+- Marketing Ops: `marketing@omnicard.in`
+- CA partner (fully active, ACTIVE stage, Gold badge, has a teammate + payout
+  details + sample notifications): `priya.sharma@camail.in`
+
+## Auth & account system
+
+Built in four phases, all fully functional except where noted:
+
+**Phase 0 — security baseline** (`src/lib/auth.ts`, `src/app/actions/password.ts`)
+- Forced password change on first login (`User.mustChangePassword`), including
+  for every newly certified partner and every newly invited teammate.
+- Self-service forgot/reset password (`/forgot-password`, `/reset-password/[token]`)
+  via `PasswordResetToken` — see the email caveat below.
+- Login rate-limiting: 5 failed attempts per email in a 15-minute window,
+  tracked in `LoginAttempt`.
+- "Sign out everywhere": `User.sessionVersion` is embedded in the session JWT
+  and cross-checked against the DB on every request (`getAuthedUser`); bumping
+  it (password change, admin deactivation, explicit sign-out-everywhere)
+  invalidates every previously issued session immediately.
+- Password strength rule (`isStrongPassword`): 8+ chars, letter + number.
+
+**Phase 1 — advisor (CA) account layer** (`/partner/settings`, `/partner/team`,
+`/partner/documents`, `/partner/notifications`)
+- Firm profile + payout details (bank/UPI/PAN/GST) editable by the firm owner.
+- Multi-user firms: `User.partnerId` is no longer unique — more than one login
+  (`firmRole: OWNER | MEMBER`) can share a `Partner` record. The owner invites
+  teammates from `/partner/team`.
+- Document center: the MOU and certification certificate are re-rendered from
+  live `Partner` data (not stored as static files) with a "Print / Save as
+  PDF" button (`window.print()` + print-only CSS), so they're always current.
+- In-app notification feed (`Notification` model, `src/lib/notify.ts`):
+  certification, commission credited, badge earned, and campaign-pending
+  events all populate it automatically; the sidebar shows an unread badge.
+
+**Phase 2 — admin account layer** (`src/lib/permissions.ts`, `src/lib/audit.ts`,
+`/admin/team`, `/admin/audit`, `/admin/settings`)
+- A role permission matrix enforced in both the UI (buttons/links hidden) and
+  the server actions themselves (`ForbiddenError` thrown server-side, so
+  hiding a button is a UX nicety, not the actual security boundary):
+  `PARTNER_MANAGER` manages partners, `SALES` manages leads, `MARKETING_OPS`
+  manages campaigns, only `ADMIN` sees the commission ledger's full detail,
+  manages the internal team, or reads the audit log.
+- Internal team management: add/deactivate ops users from `/admin/team`
+  (temp password shown once — no email provider, see below).
+- Audit log (`AuditLog` model): every certify/advance/campaign/team action
+  records who did what.
+- TOTP two-factor auth (`otpauth` + `qrcode`, no external service): enroll via
+  QR code at `/admin/settings`, enforced at login through a short-lived
+  "pending 2FA" cookie (`/login/2fa`) before the real session is issued.
+
+**Phase 4 — extras**: global search across partners/leads (`/admin/search`),
+CSV export of the commission ledger and KPI snapshots, and MOU version
+tracking (`Partner.mouVersion`, `CURRENT_MOU_VERSION`) so re-issuing the MOU
+text later doesn't silently reinterpret old signatures.
+
+### What's stubbed vs. what's real
+
+Everything above is fully functional end-to-end **except** actually sending
+an email or SMS/WhatsApp message — there's no provider account to send
+through. Concretely:
+- **Forgot-password** creates a real, single-use, time-limited token and
+  shows the reset link directly on screen ("Dev mode — no email provider
+  configured") instead of emailing it. Wiring a provider (Resend/SES/SendGrid)
+  means replacing that one redirect in `forgotPasswordAction` with an email
+  send call — the token/link generation is already correct and secure.
+- **Team invites** (both `/admin/team` and `/partner/team`) generate a real
+  temp password and create a real account with `mustChangePassword: true`;
+  the password is shown once to the inviter to relay manually instead of
+  being emailed.
+- **2FA, rate limiting, sessions, audit log, notifications, CSV export,
+  permission enforcement** — no external dependency, fully live today.
 
 ## Extension points (deliberately stubbed, not faked)
 

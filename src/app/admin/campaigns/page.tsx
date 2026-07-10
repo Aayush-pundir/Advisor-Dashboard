@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { createCampaignAction } from "@/app/actions/campaign";
-import { CAMPAIGN_TYPES, type CampaignStatus } from "@/lib/enums";
+import { CAMPAIGN_TYPES, type CampaignStatus, type UserRole } from "@/lib/enums";
+import { getAuthedUser } from "@/lib/auth";
+import { canManageCampaigns } from "@/lib/permissions";
 
 const statusVariant: Record<CampaignStatus, "neutral" | "warning" | "default" | "success"> = {
   DRAFTED: "neutral",
@@ -14,7 +16,7 @@ const statusVariant: Record<CampaignStatus, "neutral" | "warning" | "default" | 
 };
 
 export default async function AdminCampaignsPage() {
-  const [campaigns, partners] = await Promise.all([
+  const [campaigns, partners, actor] = await Promise.all([
     db.campaign.findMany({
       include: { partner: { select: { firmName: true } } },
       orderBy: { createdAt: "desc" },
@@ -23,7 +25,9 @@ export default async function AdminCampaignsPage() {
       where: { stage: { in: ["CERTIFIED", "ACTIVE"] } },
       select: { id: true, firmName: true },
     }),
+    getAuthedUser(),
   ]);
+  const canManage = actor ? canManageCampaigns(actor.role as UserRole) : false;
 
   return (
     <div className="flex flex-col gap-8">
@@ -35,44 +39,46 @@ export default async function AdminCampaignsPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Draft a new campaign</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={createCampaignAction} className="grid gap-3 sm:grid-cols-4">
-            <select
-              name="partnerId"
-              required
-              className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand"
-            >
-              <option value="">Select CA partner</option>
-              {partners.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.firmName}
-                </option>
-              ))}
-            </select>
-            <select
-              name="type"
-              className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand"
-            >
-              {CAMPAIGN_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <input
-              name="title"
-              required
-              placeholder="Campaign title"
-              className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand sm:col-span-1"
-            />
-            <Button type="submit">Draft for approval</Button>
-          </form>
-        </CardContent>
-      </Card>
+      {canManage && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Draft a new campaign</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form action={createCampaignAction} className="grid gap-3 sm:grid-cols-4">
+              <select
+                name="partnerId"
+                required
+                className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                <option value="">Select CA partner</option>
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.firmName}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="type"
+                className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                {CAMPAIGN_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <input
+                name="title"
+                required
+                placeholder="Campaign title"
+                className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand sm:col-span-1"
+              />
+              <Button type="submit">Draft for approval</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">

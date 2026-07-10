@@ -7,14 +7,21 @@ import { logoutAction } from "@/app/actions/auth";
 
 const links = [
   { href: "/admin", label: "KPI Overview" },
+  { href: "/admin/search", label: "Search" },
   { href: "/admin/partners", label: "Partners (CRM)" },
   { href: "/admin/leads", label: "Lead-to-Revenue" },
   { href: "/admin/campaigns", label: "Campaigns" },
   { href: "/admin/commissions", label: "Commission Ledger" },
 ];
 
+const adminOnlyLinks = [
+  { href: "/admin/team", label: "Internal Team" },
+  { href: "/admin/audit", label: "Audit Log" },
+];
+
 export function AdminSidebar({ name, role }: { name: string; role: string }) {
   const pathname = usePathname();
+  const isAdmin = role === "ADMIN";
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
@@ -35,6 +42,34 @@ export function AdminSidebar({ name, role }: { name: string; role: string }) {
             {l.label}
           </Link>
         ))}
+        {isAdmin && (
+          <>
+            <div className="mt-3 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted/70">
+              Admin
+            </div>
+            {adminOnlyLinks.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={cn(
+                  "rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-brand-light hover:text-brand-dark",
+                  pathname === l.href && "bg-brand-light text-brand-dark",
+                )}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </>
+        )}
+        <Link
+          href="/admin/settings"
+          className={cn(
+            "mt-3 rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-brand-light hover:text-brand-dark",
+            pathname === "/admin/settings" && "bg-brand-light text-brand-dark",
+          )}
+        >
+          Settings
+        </Link>
       </nav>
       <form action={logoutAction} className="border-t border-border p-3">
         <button className="w-full rounded-lg px-3 py-2 text-left text-sm text-muted hover:bg-brand-light">
