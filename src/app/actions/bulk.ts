@@ -7,6 +7,7 @@ import { canManagePartners } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { notifyInternalUsers } from "@/lib/notify";
 import { slugify, randomReferralCode } from "@/lib/slug";
+import { pickNextSalesRep } from "@/lib/assignment";
 import type { UserRole } from "@/lib/enums";
 
 export type BulkLeadRow = {
@@ -34,22 +35,28 @@ export async function bulkImportLeadsAction(
     return { ok: false, created: 0, skipped: rows.length, error: "No valid rows found — each row needs a business name, contact name, phone and email." };
   }
 
-  const result = await db.lead.createMany({
-    data: valid.map((r) => ({
-      partnerId: session.partnerId!,
-      businessName: r.businessName.trim(),
-      contactName: r.contactName.trim(),
-      phone: r.phone.trim(),
-      email: r.email.trim(),
-      dealValue: r.dealValue && r.dealValue > 0 ? Math.round(r.dealValue) : 0,
-      source: "BULK_UPLOAD",
-      stage: "CAPTURED",
-    })),
-  });
+  let created = 0;
+  for (const r of valid) {
+    const assignedToId = await pickNextSalesRep();
+    await db.lead.create({
+      data: {
+        partnerId: session.partnerId!,
+        businessName: r.businessName.trim(),
+        contactName: r.contactName.trim(),
+        phone: r.phone.trim(),
+        email: r.email.trim(),
+        dealValue: r.dealValue && r.dealValue > 0 ? Math.round(r.dealValue) : 0,
+        source: "BULK_UPLOAD",
+        stage: "CAPTURED",
+        assignedToId,
+      },
+    });
+    created += 1;
+  }
 
   await notifyInternalUsers(["ADMIN", "MARKETING_OPS"], {
     type: "BULK_LEADS_UPLOADED",
-    title: `${result.count} client leads bulk-uploaded`,
+    title: `${created} client leads bulk-uploaded`,
     body: "New leads are available for masked campaign targeting.",
     href: "/admin/leads",
   });
@@ -57,7 +64,7 @@ export async function bulkImportLeadsAction(
   revalidatePath("/partner/leads");
   revalidatePath("/admin/leads");
 
-  return { ok: true, created: result.count, skipped: rows.length - valid.length };
+  return { ok: true, created, skipped: rows.length - valid.length };
 }
 
 export type BulkPartnerRow = {

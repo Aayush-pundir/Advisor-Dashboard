@@ -8,14 +8,16 @@ import { LeadStageSelect } from "@/components/admin/lead-stage-select";
 import { getAuthedUser } from "@/lib/auth";
 import { canManageLeads } from "@/lib/permissions";
 import { RevealPii } from "@/components/admin/reveal-pii";
+import { ReassignLeadSelect } from "@/components/admin/reassign-lead-select";
 
 export default async function AdminLeadsPage() {
-  const [leads, actor] = await Promise.all([
+  const [leads, actor, reps] = await Promise.all([
     db.lead.findMany({
-      include: { partner: { select: { firmName: true } } },
+      include: { partner: { select: { firmName: true } }, assignedTo: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
     }),
     getAuthedUser(),
+    db.user.findMany({ where: { role: "SALES", active: true }, select: { id: true, name: true } }),
   ]);
   const canManage = actor ? canManageLeads(actor.role as UserRole) : false;
 
@@ -39,6 +41,7 @@ export default async function AdminLeadsPage() {
               <th className="p-3 font-medium">Value</th>
               <th className="p-3 font-medium">Captured</th>
               <th className="p-3 font-medium">Stage</th>
+              <th className="p-3 font-medium">Assigned to</th>
             </tr>
           </thead>
           <tbody>
@@ -76,6 +79,13 @@ export default async function AdminLeadsPage() {
                     />
                   ) : (
                     <Badge variant="neutral">{LEAD_STAGE_LABELS[l.stage as LeadStage]}</Badge>
+                  )}
+                </td>
+                <td className="p-3">
+                  {canManage ? (
+                    <ReassignLeadSelect leadId={l.id} assignedToId={l.assignedToId} reps={reps} />
+                  ) : (
+                    <span className="text-xs text-muted">{l.assignedTo?.name ?? "Unassigned"}</span>
                   )}
                 </td>
               </tr>

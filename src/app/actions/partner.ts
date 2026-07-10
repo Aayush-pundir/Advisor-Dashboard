@@ -10,6 +10,7 @@ import { getAuthedUser, hashPassword } from "@/lib/auth";
 import { notifyPartnerUsers } from "@/lib/notify";
 import { canManagePartners, ForbiddenError } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { pickNextSalesRep } from "@/lib/assignment";
 
 async function requirePartnerManager() {
   const user = await getAuthedUser();
@@ -135,6 +136,8 @@ export async function captureLeadAction(formData: FormData) {
     return;
   }
 
+  const assignedToId = await pickNextSalesRep();
+
   await db.lead.create({
     data: {
       partnerId,
@@ -144,6 +147,7 @@ export async function captureLeadAction(formData: FormData) {
       phone,
       source,
       stage: "CAPTURED",
+      assignedToId,
     },
   });
 

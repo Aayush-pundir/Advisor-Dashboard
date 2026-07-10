@@ -93,6 +93,32 @@ export async function advanceLeadStageAction(leadId: string, stage: LeadStage) {
   revalidatePath("/partner/leads");
 }
 
+/** Admin: manually reassign a lead to a different sales rep, overriding the
+ * automatic round-robin assignment. */
+export async function reassignLeadAction(leadId: string, assignedToId: string) {
+  const actor = await getAuthedUser();
+  if (!actor || !canManageLeads(actor.role as UserRole)) {
+    throw new ForbiddenError("reassign leads");
+  }
+
+  const lead = await db.lead.update({
+    where: { id: leadId },
+    data: { assignedToId: assignedToId || null },
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "REASSIGN_LEAD",
+    targetType: "Lead",
+    targetId: leadId,
+    meta: `${lead.businessName} -> ${assignedToId || "unassigned"}`,
+  });
+
+  revalidatePath("/admin/leads");
+  revalidatePath("/admin/ops");
+}
+
 async function checkMilestoneBadges(partnerId: string) {
   const now = new Date();
   const quarterMonth = Math.floor(now.getMonth() / 3) * 3;

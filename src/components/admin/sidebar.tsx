@@ -11,6 +11,7 @@ const links = [
   { href: "/admin/partners/bulk-upload", label: "Bulk Add Partners" },
   { href: "/admin/leads", label: "Lead-to-Revenue" },
   { href: "/admin/clients", label: "Client Health" },
+  { href: "/admin/ops", label: "Ops Efficiency" },
   { href: "/admin/campaigns", label: "Campaigns" },
   { href: "/admin/commissions", label: "Commission Ledger" },
   { href: "/admin/deals", label: "Deal Registrations" },
