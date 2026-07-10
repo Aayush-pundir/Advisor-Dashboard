@@ -214,12 +214,7 @@ export function MouModal({ open, onClose }: { open: boolean; onClose: () => void
                   />
                 </div>
 
-                <p style={{ textAlign: "center", fontSize: 13, color: "rgba(27,23,20,0.55)", margin: "18px 0 4px" }}>Signed at</p>
-                <p style={{ textAlign: "center", fontWeight: 700, fontSize: 17, color: "#D6362B", margin: "0 0 18px" }}>
-                  ICAI AI INNOVATION SUMMIT 2026
-                </p>
-
-                <p style={{ fontSize: 14, lineHeight: 1.7, color: "#1B1714", margin: "0 0 12px" }}>
+                <p style={{ fontSize: 14, lineHeight: 1.7, color: "#1B1714", margin: "18px 0 12px" }}>
                   This Memorandum records mutual intent between OmniCard and <strong>{firmDisplay}</strong> to explore
                   collaboration in the area of corporate expense management and digital payment solutions for clients
                   of <strong>{firmDisplay}</strong>.
