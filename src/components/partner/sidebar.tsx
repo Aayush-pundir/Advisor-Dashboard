@@ -9,6 +9,8 @@ const links = [
   { href: "/partner", label: "Dashboard" },
   { href: "/partner/leads", label: "Leads & Pipeline" },
   { href: "/partner/leads/bulk-upload", label: "Bulk Upload Leads" },
+  { href: "/partner/deals", label: "Deal Registration" },
+  { href: "/partner/mdf", label: "MDF Requests" },
   { href: "/partner/assets", label: "My Asset Kit" },
   { href: "/partner/campaigns", label: "Campaigns" },
   { href: "/partner/badges", label: "Milestones & Badges" },

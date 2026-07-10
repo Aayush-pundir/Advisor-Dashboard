@@ -212,3 +212,27 @@ export function ltvCommissionPerClient(acv: number, annualChurn: number) {
 /** Bump when the MOU document text changes; each Partner records which
  * version they accepted (Partner.mouVersion). */
 export const CURRENT_MOU_VERSION = "v1";
+
+/** Deal registration — channel-conflict protection window, in days. */
+export const DEAL_PROTECTION_DAYS = 90;
+
+export const DEAL_STATUSES = ["PENDING", "APPROVED", "REJECTED", "CONVERTED", "EXPIRED"] as const;
+export type DealStatus = (typeof DEAL_STATUSES)[number];
+
+export const DEAL_STATUS_LABELS: Record<DealStatus, string> = {
+  PENDING: "Pending Review",
+  APPROVED: "Approved & Protected",
+  REJECTED: "Rejected",
+  CONVERTED: "Converted",
+  EXPIRED: "Expired",
+};
+
+export const MDF_STATUSES = ["PENDING", "APPROVED", "REJECTED", "PAID"] as const;
+export type MdfStatus = (typeof MDF_STATUSES)[number];
+
+export const MDF_STATUS_LABELS: Record<MdfStatus, string> = {
+  PENDING: "Pending Review",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  PAID: "Paid Out",
+};
