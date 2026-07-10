@@ -98,6 +98,8 @@ export const LEAD_SOURCES = [
   "WHATSAPP",
   "REFERRAL",
   "DIRECTORY",
+  "PARTNER_MANUAL",
+  "BULK_UPLOAD",
 ] as const;
 export type LeadSource = (typeof LEAD_SOURCES)[number];
 

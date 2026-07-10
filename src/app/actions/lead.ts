@@ -6,12 +6,61 @@ import { YEAR1_RATE, TRAILING_RATE, BADGE_TIER_META } from "@/lib/enums";
 import type { LeadStage, BadgeTier, UserRole } from "@/lib/enums";
 import { notifyPartnerUsers } from "@/lib/notify";
 import { formatINR, quarterLabel, quarterStart } from "@/lib/utils";
-import { getAuthedUser } from "@/lib/auth";
+import { getAuthedUser, getSession } from "@/lib/auth";
 import { canManageLeads, ForbiddenError } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { fireLeadClosedWebhook } from "@/app/actions/integrations";
+import { pickNextSalesRep } from "@/lib/assignment";
+import { notifyInternalUsers } from "@/lib/notify";
 
 const TIER_ORDER: Exclude<BadgeTier, "NONE">[] = ["SILVER", "GOLD", "PLATINUM"];
+
+/** Partner: add a single client lead one at a time, as an alternative to
+ * the bulk CSV upload — same destination (the Lead pipeline), just a
+ * lighter-weight entry point for a one-off referral. */
+export async function addLeadManuallyAction(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session?.partnerId) {
+    return { ok: false, error: "You must be signed in as an advisor." };
+  }
+
+  const businessName = String(formData.get("businessName") ?? "").trim();
+  const contactName = String(formData.get("contactName") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const dealValue = Number(formData.get("dealValue") ?? 0);
+
+  if (!businessName || !contactName || !phone || !email) {
+    return { ok: false, error: "Please fill in business name, contact name, phone and email." };
+  }
+
+  const assignedToId = await pickNextSalesRep();
+
+  await db.lead.create({
+    data: {
+      partnerId: session.partnerId,
+      businessName,
+      contactName,
+      phone,
+      email,
+      dealValue: dealValue > 0 ? Math.round(dealValue) : 0,
+      source: "PARTNER_MANUAL",
+      stage: "CAPTURED",
+      assignedToId,
+    },
+  });
+
+  await notifyInternalUsers(["ADMIN", "SALES"], {
+    type: "LEAD_CAPTURED",
+    title: `New lead: ${businessName}`,
+    href: "/admin/leads",
+  });
+
+  revalidatePath("/partner/leads");
+  return { ok: true };
+}
 
 /** Step 6 — advance a lead through the sales pipeline; closing triggers
  * commissions (Step 6.6 / Step 10) and milestone badge checks (Step 4/8). */

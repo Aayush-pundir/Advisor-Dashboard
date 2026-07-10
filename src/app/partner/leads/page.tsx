@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatINR, formatDate } from "@/lib/utils";
 import { LEAD_STAGE_LABELS, type LeadStage } from "@/lib/enums";
+import { AddLeadForm } from "@/components/partner/add-lead-form";
 
 const stageVariant: Record<LeadStage, "neutral" | "default" | "success" | "warning" | "danger"> = {
   CAPTURED: "neutral",
@@ -26,9 +28,17 @@ export default async function PartnerLeadsPage() {
     <div>
       <h1 className="text-2xl font-bold">Leads & Pipeline</h1>
       <p className="mt-1 text-muted">
-        Every client lead referred through your link, tracked live from
-        capture to close (Step 6).
+        Every client lead you&apos;ve referred to OmniCard, tracked live from
+        capture to close (Step 6). Add leads one at a time below, or{" "}
+        <Link href="/partner/leads/bulk-upload" className="text-brand hover:underline">
+          bulk upload a CSV
+        </Link>
+        .
       </p>
+
+      <div className="mt-4">
+        <AddLeadForm />
+      </div>
 
       <Card className="mt-6 overflow-x-auto">
         <table className="w-full text-sm">

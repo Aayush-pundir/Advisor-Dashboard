@@ -13,6 +13,7 @@ const links = [
   { href: "/admin/clients", label: "Client Health" },
   { href: "/admin/ops", label: "Ops Efficiency" },
   { href: "/admin/campaigns", label: "Campaigns" },
+  { href: "/admin/marketing-contacts", label: "Marketing Contact Lists" },
   { href: "/admin/commissions", label: "Commission Ledger" },
   { href: "/admin/deals", label: "Deal Registrations" },
   { href: "/admin/mdf", label: "MDF Requests" },
