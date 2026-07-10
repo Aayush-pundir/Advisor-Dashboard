@@ -184,10 +184,70 @@ Built in four phases, all fully functional except where noted:
   QR code at `/admin/settings`, enforced at login through a short-lived
   "pending 2FA" cookie (`/login/2fa`) before the real session is issued.
 
-**Phase 4 — extras**: global search across partners/leads (`/admin/search`),
-CSV export of the commission ledger and KPI snapshots, and MOU version
-tracking (`Partner.mouVersion`, `CURRENT_MOU_VERSION`) so re-issuing the MOU
-text later doesn't silently reinterpret old signatures.
+**Phase 4 — extras**: global command-palette search across partners/leads
+(Cmd/Ctrl+K, `/api/search`), CSV export of the commission ledger and KPI
+snapshots, and MOU version tracking (`Partner.mouVersion`,
+`CURRENT_MOU_VERSION`) so re-issuing the MOU text later doesn't silently
+reinterpret old signatures.
+
+## Partner lifecycle CRM (PRM v2)
+
+Everything below builds out the full partner lifecycle — partnership lead →
+co-branded marketing → customer lead → post-sale — from both the admin and
+advisor side, on top of the auth/account layer above.
+
+**Ops layer** (`src/lib/notify.ts`, `src/components/shared/*`)
+- In-app notification bell (top-right, `Notification` model, `/api/notifications`)
+  for both partner and internal roles — `notifyPartnerUsers()` fans out to every
+  user on a firm, `notifyInternalUsers()` fans out by role.
+- Global command palette (Cmd/Ctrl+K) instead of a dedicated search page —
+  search lives inside the surface it's needed on, per the product brief.
+- Floating support widget (WhatsApp deep-link + ticket form) plus a 4-tier
+  escalation matrix (`SupportTicket.escalationLevel`, `/admin/escalation`,
+  `/admin/support`).
+
+**Bulk data + PII masking** (`src/app/actions/bulk.ts`, `src/lib/utils.ts`)
+- Partners bulk-import their client book via CSV (`/partner/leads/bulk-upload`,
+  `papaparse` client-side parse + preview); admin bulk-imports partner
+  cohorts (`/admin/partners/bulk-upload`).
+- Client phone/email are masked by default everywhere (`maskPhone`,
+  `maskEmail`) and only unmasked through an explicit, permission-checked,
+  audited server action (`revealLeadPiiAction`) — so marketing/ops can run
+  campaigns off bulk-uploaded data without raw PII reaching the browser
+  until someone deliberately reveals it.
+
+**Deal registration + MDF** (`src/app/actions/deals.ts`, `src/app/actions/mdf.ts`)
+- Channel-conflict protection: a partner locks in attribution on a prospect
+  (by phone number) for a 90-day window before referring; a second partner
+  registering the same phone while it's still protected is blocked with a
+  clear error instead of silently double-attributing the lead.
+- Market Development Funds: partners request co-marketing budget per
+  campaign; admin approves an amount (may differ from the request) and
+  later marks it paid out.
+
+**Tiering, territory, and certification** (`Partner.badgeTier`,
+`Partner.certLevel`, `CertificationProgress`)
+- Badge tier (Silver/Gold/Platinum) updates now stamp `tierUpdatedAt`.
+- Admin's partner list/detail pages flag "territory overlap" when multiple
+  non-dormant partners share a city+state, so overlapping coverage is visible
+  without a hard geo-exclusivity rule that would block onboarding.
+- Self-serve certification track (`/partner/certification`): completing every
+  module for a level (Demo → Product → Sales) auto-bumps `Partner.certLevel`.
+
+**Post-sale health + churn risk** (`src/lib/health.ts`, `/admin/clients`)
+- Every closed-won lead gets a deterministic health score from recency of
+  contact, support-ticket load, and NPS — recomputed on every page load
+  (`recomputeAllClientHealth`) so it never goes stale without a cron job.
+- Risk-level transitions to HIGH trigger an internal notification so account
+  teams see who needs attention without polling the list manually.
+
+**Lead routing + ops efficiency** (`src/lib/assignment.ts`, `/admin/ops`)
+- New leads (single capture and bulk upload) auto-assign to whichever active
+  `SALES` rep currently has the fewest open leads — workload-balanced round
+  robin rather than a fixed queue position, so volume doesn't pile onto
+  whoever was assigned first. Admins can override the assignment inline.
+- `/admin/ops` tracks per-rep workload and 24-hour first-contact SLA
+  compliance.
 
 ### What's stubbed vs. what's real
 
@@ -205,6 +265,12 @@ through. Concretely:
   being emailed.
 - **2FA, rate limiting, sessions, audit log, notifications, CSV export,
   permission enforcement** — no external dependency, fully live today.
+- **PWA**: `public/manifest.json` + generated app icons (`icon-192.png`,
+  `icon-512.png`, `apple-touch-icon.png`, cropped from the OmniCard mark)
+  make the dashboard installable on mobile/desktop home screens with the
+  brand color as the theme color. There's no service worker yet, so it's
+  installable but not offline-capable — adding one is additive, not a
+  redesign.
 
 ## Extension points (deliberately stubbed, not faked)
 

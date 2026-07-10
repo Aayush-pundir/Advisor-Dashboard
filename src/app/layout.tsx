@@ -27,6 +27,18 @@ const plexSerif = IBM_Plex_Serif({
 export const metadata: Metadata = {
   title: "OmniCard Advisor",
   description: "OmniCard's CA Partner Network — Advisor Dashboard",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export const viewport = {
+  themeColor: "#d6362b",
 };
 
 export default function RootLayout({
