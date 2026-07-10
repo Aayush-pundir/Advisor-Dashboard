@@ -52,7 +52,7 @@ export const BADGE_TIER_META: Record<
   PLATINUM: {
     threshold: 50,
     gift: "International trip for two / MacBook + Rs 50,000 voucher",
-    color: "#7c6cf5",
+    color: "#171310",
   },
 };
 

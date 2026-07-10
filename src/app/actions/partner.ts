@@ -54,6 +54,61 @@ export async function signupPartnerAction(formData: FormData) {
   redirect(`/signup/thank-you?slug=${partner.slug}`);
 }
 
+/**
+ * Homepage "Join the Initiative" MOU — captures the same interest-lead data
+ * as signupPartnerAction (Step 1.2) but returns a result instead of
+ * redirecting, so the modal can show an inline signed confirmation without
+ * navigating away from the document.
+ */
+export async function signMouAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const firmName = String(formData.get("firmName") ?? "").trim();
+  const contactName = String(formData.get("contactName") ?? "").trim();
+  const designation = String(formData.get("designation") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const city = String(formData.get("city") ?? "").trim();
+  const state = String(formData.get("state") ?? "").trim();
+  const icaiNumber = String(formData.get("icaiNumber") ?? "").trim() || null;
+
+  if (!firmName || !contactName || !email || !phone || !city || !state) {
+    return { ok: false, error: "Please fill in all required fields." };
+  }
+
+  const existing = await db.partner.findUnique({ where: { email } });
+  if (existing) {
+    return { ok: false, error: "An advisor account with this email already exists." };
+  }
+
+  let slug = slugify(firmName);
+  const slugTaken = await db.partner.findUnique({ where: { slug } });
+  if (slugTaken) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+
+  const partner = await db.partner.create({
+    data: {
+      firmName,
+      contactName,
+      email,
+      phone,
+      city,
+      state,
+      icaiNumber,
+      slug,
+      referralCode: randomReferralCode(firmName),
+      stage: "LEAD",
+    },
+  });
+
+  await db.activityEvent.create({
+    data: {
+      partnerId: partner.id,
+      type: "CLICK",
+      meta: `mou_signed:${designation || "Authorized Signatory"}`,
+    },
+  });
+
+  return { ok: true };
+}
+
 /** Step 6.1 — client lead captured on a CA's co-branded landing page. */
 export async function captureLeadAction(formData: FormData) {
   const partnerId = String(formData.get("partnerId") ?? "");
