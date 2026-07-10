@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { EarningsCalculator } from "@/components/site/earnings-calculator";
 import { MouModal } from "@/components/site/mou-modal";
 import { Reveal, RevealGroup, RevealItem, TiltCard, GradientBlend } from "@/components/site/motion";
@@ -114,6 +114,59 @@ const CREDENTIALS = [
   "Advisory Board: ex-RBI Dy. Governor · ex-NPCI · ex-SBI Chairman",
 ];
 
+const FAQS = [
+  {
+    q: "Is there any cost or investment required to become an Advisory Partner?",
+    a: "None. There's no fee to join, no minimum commitment, and no liability on your firm at any point — you make the introduction, OmniCard runs everything else.",
+  },
+  {
+    q: "How much can I earn per client I refer?",
+    a: "15% of the client's Year-1 contract value, plus 5% trailing every year they stay active on the platform — use the earnings calculator above to see it for your own client mix.",
+  },
+  {
+    q: "What does onboarding and certification involve?",
+    a: "A short demo session, after which your firm is certified as an Implementation Advisor and your full asset kit (landing page, QR code, WhatsApp pack, mini-deck) is delivered within 48 hours.",
+  },
+  {
+    q: "What if I introduce a client another advisor is already talking to?",
+    a: "Register the deal from your dashboard and it's protected under your attribution for 90 days — if another partner tries to register the same prospect, they're notified instead of silently overlapping.",
+  },
+  {
+    q: "Do I need to handle onboarding, KYC, or client support myself?",
+    a: "No — OmniCard's team runs the demo, onboarding, KYC, card issuance and ongoing support. Your role stops at the warm introduction; the account management is ours.",
+  },
+  {
+    q: "How and when do I get paid?",
+    a: "Commissions are credited automatically to your OmniCard wallet the moment a client closes, and every trailing renewal after that — visible in real time on your partner dashboard.",
+  },
+];
+
+// Illustrative advisor economics — same 15% Year-1 + 5% trailing model as the
+// earnings calculator above, applied to representative firm profiles.
+const CASE_STUDIES = [
+  {
+    profile: "4-partner tax & audit firm",
+    city: "Pune",
+    clients: "8 clients referred, Year 1",
+    acv: "₹4L average contract value",
+    earned: "₹4.8L Year-1 + building toward ₹28L+ lifetime",
+  },
+  {
+    profile: "Boutique GST compliance practice",
+    city: "Bengaluru",
+    clients: "15 clients referred, Year 1",
+    acv: "₹2.5L average contract value",
+    earned: "₹5.6L Year-1 + building toward ₹33L+ lifetime",
+  },
+  {
+    profile: "Mid-size CA firm, multi-partner",
+    city: "Delhi NCR",
+    clients: "25 clients referred, first 3 quarters",
+    acv: "₹6L average contract value",
+    earned: "₹22.5L Year-1 + building toward ₹1.3Cr+ lifetime",
+  },
+];
+
 const sectionLabelStyle: React.CSSProperties = {
   fontSize: "clamp(11px,2.6vw,13px)",
   fontWeight: 700,
@@ -123,9 +176,11 @@ const sectionLabelStyle: React.CSSProperties = {
   marginBottom: 14,
 };
 
-export function HomeLanding() {
+export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: string; count: number }[] }) {
   const [applyOpen, setApplyOpen] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [showStickyCta, setShowStickyCta] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const videoBound = useRef(false);
 
@@ -142,6 +197,12 @@ export function HomeLanding() {
     if (el.readyState >= 2) tryPlay();
     else el.addEventListener("loadeddata", tryPlay, { once: true });
     el.addEventListener("canplay", reveal, { once: true });
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setShowStickyCta(window.scrollY > 700);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const openApply = () => setApplyOpen(true);
@@ -644,6 +705,49 @@ export function HomeLanding() {
         </div>
       </section>
 
+      {/* SUCCESS STORIES */}
+      <section style={{ background: "#F1EEE8", padding: "clamp(56px,9vw,96px) clamp(20px,5vw,32px)" }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ maxWidth: 640, margin: "0 auto clamp(36px,7vw,56px)", textAlign: "center" }}>
+              <div style={sectionLabelStyle}>What this looks like in practice</div>
+              <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(24px,5vw,36px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+                Illustrative advisor economics
+              </h2>
+              <p style={{ marginTop: 14, fontSize: 14.5, color: "rgba(27,23,20,0.6)" }}>
+                Representative examples using the same commission model as the calculator above — actual earnings
+                depend on your client mix and contract values.
+              </p>
+            </div>
+          </Reveal>
+          <RevealGroup style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px,1fr))", gap: 20 }}>
+            {CASE_STUDIES.map((c) => (
+              <RevealItem key={c.profile}>
+                <TiltCard
+                  style={{
+                    background: "#FAF9F7",
+                    border: "1px solid rgba(27,23,20,0.1)",
+                    borderRadius: 12,
+                    padding: "28px 24px",
+                    height: "100%",
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 16.5, color: "#171310", fontFamily: "'IBM Plex Serif', serif" }}>
+                    {c.profile}
+                  </div>
+                  <div style={{ fontSize: 13, color: "rgba(27,23,20,0.5)", marginBottom: 18 }}>{c.city}</div>
+                  <div style={{ fontSize: 14, color: "rgba(27,23,20,0.65)", marginBottom: 6 }}>{c.clients}</div>
+                  <div style={{ fontSize: 14, color: "rgba(27,23,20,0.65)", marginBottom: 16 }}>{c.acv}</div>
+                  <div style={{ borderTop: "1px solid rgba(27,23,20,0.1)", paddingTop: 16, fontSize: 15, fontWeight: 600, color: "#D6362B" }}>
+                    {c.earned}
+                  </div>
+                </TiltCard>
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        </div>
+      </section>
+
       {/* PRODUCT IN ACTION */}
       <section style={{ background: "#F1EEE8", padding: "clamp(56px,10vw,104px) clamp(20px,5vw,32px)" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto" }}>
@@ -731,6 +835,50 @@ export function HomeLanding() {
         <div style={{ fontSize: 14, color: "rgba(27,23,20,0.5)", marginTop: 20 }}>&amp; many more</div>
       </section>
 
+      {/* COVERAGE MAP */}
+      {stateCoverage.length > 0 && (
+        <section style={{ padding: "clamp(56px,9vw,96px) clamp(20px,5vw,32px)", maxWidth: 760, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <div style={sectionLabelStyle}>Growing every month</div>
+              <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+                Where our Advisory Partners operate
+              </h2>
+            </div>
+          </Reveal>
+          <RevealGroup style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {(() => {
+              const max = Math.max(...stateCoverage.map((s) => s.count));
+              return stateCoverage.map((s) => (
+                <RevealItem key={s.state}>
+                  <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 40px", alignItems: "center", gap: 14 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: "#171310" }}>{s.state}</span>
+                    <div style={{ height: 10, borderRadius: 6, background: "rgba(27,23,20,0.08)", overflow: "hidden" }}>
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${Math.max((s.count / max) * 100, 6)}%`,
+                          background: "linear-gradient(90deg,#D6362B,#E8695F)",
+                          borderRadius: 6,
+                        }}
+                      />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(27,23,20,0.6)", textAlign: "right" }}>{s.count}</span>
+                  </div>
+                </RevealItem>
+              ));
+            })()}
+          </RevealGroup>
+          <p style={{ marginTop: 28, textAlign: "center", fontSize: 13.5, color: "rgba(27,23,20,0.5)" }}>
+            Certified &amp; Active Advisory Partners, by state — see the full{" "}
+            <Link href="/directory" style={{ color: "#D6362B", fontWeight: 600, textDecoration: "none" }}>
+              advisor directory
+            </Link>
+            .
+          </p>
+        </section>
+      )}
+
       {/* RECOGNITION */}
       <section style={{ background: "#F1EEE8", padding: "clamp(56px,9vw,100px) clamp(20px,5vw,32px)" }}>
         <Reveal>
@@ -791,6 +939,82 @@ export function HomeLanding() {
         </RevealGroup>
       </section>
 
+      {/* FAQ */}
+      <section style={{ background: "#F1EEE8", padding: "clamp(56px,10vw,100px) clamp(20px,5vw,32px)" }}>
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <div style={sectionLabelStyle}>Common questions</div>
+              <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+                Before you join, the answers you&apos;ll want
+              </h2>
+            </div>
+          </Reveal>
+          <RevealGroup style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {FAQS.map((item, i) => {
+              const open = openFaq === i;
+              return (
+                <RevealItem key={item.q}>
+                  <div
+                    style={{
+                      background: "#FAF9F7",
+                      border: "1px solid rgba(27,23,20,0.1)",
+                      borderRadius: 10,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <button
+                      onClick={() => setOpenFaq(open ? null : i)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 16,
+                        padding: "18px 22px",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        fontFamily: "inherit",
+                        fontSize: 15.5,
+                        fontWeight: 600,
+                        color: "#171310",
+                      }}
+                    >
+                      {item.q}
+                      <span
+                        style={{
+                          flexShrink: 0,
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          border: "1px solid rgba(27,23,20,0.2)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#D6362B",
+                          fontSize: 14,
+                          transform: open ? "rotate(45deg)" : "none",
+                          transition: "transform 0.2s ease",
+                        }}
+                      >
+                        +
+                      </span>
+                    </button>
+                    {open && (
+                      <div style={{ padding: "0 22px 20px", fontSize: 14.5, lineHeight: 1.65, color: "rgba(27,23,20,0.68)" }}>
+                        {item.a}
+                      </div>
+                    )}
+                  </div>
+                </RevealItem>
+              );
+            })}
+          </RevealGroup>
+        </div>
+      </section>
+
       {/* FINAL CTA */}
       <section style={{ background: "#171310", color: "#FAF9F7", padding: "clamp(56px,9vw,100px) clamp(20px,5vw,32px)", textAlign: "center" }}>
         <Reveal>
@@ -844,6 +1068,62 @@ export function HomeLanding() {
           </Link>
         </div>
       </div>
+
+      {/* STICKY SCROLL CTA */}
+      <AnimatePresence>
+        {showStickyCta && !applyOpen && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            style={{
+              position: "fixed",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 50,
+              background: "#171310",
+              borderTop: "1px solid rgba(250,249,247,0.12)",
+              boxShadow: "0 -12px 32px rgba(0,0,0,0.18)",
+            }}
+          >
+            <div
+              style={{
+                maxWidth: 1180,
+                margin: "0 auto",
+                padding: "14px clamp(16px,4vw,32px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ color: "#FAF9F7", fontSize: 14.5, fontWeight: 500 }}>
+                Ready to become an Advisory Partner?
+              </span>
+              <button
+                onClick={openApply}
+                style={{
+                  background: "#D6362B",
+                  color: "#FAF9F7",
+                  border: "none",
+                  padding: "10px 22px",
+                  borderRadius: 4,
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Join the Initiative
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <MouModal open={applyOpen} onClose={closeApply} />
     </div>
