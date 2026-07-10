@@ -2,6 +2,8 @@ import { getAuthedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { PartnerSidebar } from "@/components/partner/sidebar";
+import { TopBar } from "@/components/shared/top-bar";
+import { SupportWidget } from "@/components/shared/support-widget";
 
 export default async function PartnerLayout({
   children,
@@ -21,9 +23,13 @@ export default async function PartnerLayout({
   return (
     <div className="flex min-h-screen">
       <PartnerSidebar firmName={partner.firmName} unreadCount={unreadCount} />
-      <main className="flex-1 overflow-y-auto bg-background p-8">
-        {children}
-      </main>
+      <div className="flex flex-1 flex-col">
+        <TopBar unreadCount={unreadCount} />
+        <main className="flex-1 overflow-y-auto bg-background p-8">
+          {children}
+        </main>
+      </div>
+      <SupportWidget />
     </div>
   );
 }

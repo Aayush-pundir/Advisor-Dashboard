@@ -7,16 +7,20 @@ import { logoutAction } from "@/app/actions/auth";
 
 const links = [
   { href: "/admin", label: "KPI Overview" },
-  { href: "/admin/search", label: "Search" },
   { href: "/admin/partners", label: "Partners (CRM)" },
+  { href: "/admin/partners/bulk-upload", label: "Bulk Add Partners" },
   { href: "/admin/leads", label: "Lead-to-Revenue" },
   { href: "/admin/campaigns", label: "Campaigns" },
   { href: "/admin/commissions", label: "Commission Ledger" },
+  { href: "/admin/deals", label: "Deal Registrations" },
+  { href: "/admin/mdf", label: "MDF Requests" },
+  { href: "/admin/support", label: "Support Tickets" },
 ];
 
 const adminOnlyLinks = [
   { href: "/admin/team", label: "Internal Team" },
   { href: "/admin/audit", label: "Audit Log" },
+  { href: "/admin/escalation", label: "Escalation Matrix" },
 ];
 
 export function AdminSidebar({ name, role }: { name: string; role: string }) {
@@ -29,7 +33,7 @@ export function AdminSidebar({ name, role }: { name: string; role: string }) {
         <p className="text-sm font-semibold">{name}</p>
         <p className="text-xs text-muted">{role.replace("_", " ")}</p>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 p-3">
+      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
         {links.map((l) => (
           <Link
             key={l.href}

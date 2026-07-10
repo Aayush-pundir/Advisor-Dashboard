@@ -18,3 +18,25 @@ export async function notifyPartnerUsers(
     })),
   });
 }
+
+/** Notifies internal ops users (by role) — used for support tickets, deal
+ * registrations, and MDF requests that need admin/partner-manager attention. */
+export async function notifyInternalUsers(
+  roles: string[],
+  notification: { type: string; title: string; body?: string; href?: string },
+) {
+  const users = await db.user.findMany({
+    where: { role: { in: roles }, partnerId: null, active: true },
+    select: { id: true },
+  });
+  if (users.length === 0) return;
+  await db.notification.createMany({
+    data: users.map((u) => ({
+      userId: u.id,
+      type: notification.type,
+      title: notification.title,
+      body: notification.body,
+      href: notification.href,
+    })),
+  });
+}

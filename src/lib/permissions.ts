@@ -31,6 +31,13 @@ export function canViewAuditLog(role: UserRole) {
   return role === "ADMIN";
 }
 
+/** Who can reveal masked client PII (phone/email) for campaign execution —
+ * every internal ops role can, since all four run some part of the funnel
+ * that eventually needs to contact a client, but the reveal is always logged. */
+export function canRevealPii(role: UserRole) {
+  return role === "ADMIN" || role === "PARTNER_MANAGER" || role === "SALES" || role === "MARKETING_OPS";
+}
+
 export class ForbiddenError extends Error {
   constructor(action: string) {
     super(`Your role does not have permission to ${action}.`);

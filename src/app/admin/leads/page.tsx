@@ -1,12 +1,13 @@
 import { db } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatINR, formatDate } from "@/lib/utils";
+import { formatINR, formatDate, maskPhone, maskEmail } from "@/lib/utils";
 import { LEAD_STAGES, LEAD_STAGE_LABELS } from "@/lib/enums";
 import type { LeadStage, UserRole } from "@/lib/enums";
 import { LeadStageSelect } from "@/components/admin/lead-stage-select";
 import { getAuthedUser } from "@/lib/auth";
 import { canManageLeads } from "@/lib/permissions";
+import { RevealPii } from "@/components/admin/reveal-pii";
 
 export default async function AdminLeadsPage() {
   const [leads, actor] = await Promise.all([
@@ -32,6 +33,7 @@ export default async function AdminLeadsPage() {
           <thead className="border-b border-border text-left text-muted">
             <tr>
               <th className="p-3 font-medium">Business</th>
+              <th className="p-3 font-medium">Contact</th>
               <th className="p-3 font-medium">Referred by</th>
               <th className="p-3 font-medium">Source</th>
               <th className="p-3 font-medium">Value</th>
@@ -45,6 +47,20 @@ export default async function AdminLeadsPage() {
                 <td className="p-3">
                   <p className="font-medium">{l.businessName}</p>
                   <p className="text-xs text-muted">{l.contactName}</p>
+                </td>
+                <td className="p-3">
+                  {canManage ? (
+                    <RevealPii
+                      leadId={l.id}
+                      maskedPhone={maskPhone(l.phone)}
+                      maskedEmail={maskEmail(l.email)}
+                    />
+                  ) : (
+                    <div className="text-xs">
+                      <p>{maskPhone(l.phone)}</p>
+                      <p className="text-muted">{maskEmail(l.email)}</p>
+                    </div>
+                  )}
                 </td>
                 <td className="p-3 text-muted">{l.partner.firmName}</td>
                 <td className="p-3 text-muted">{l.source}</td>

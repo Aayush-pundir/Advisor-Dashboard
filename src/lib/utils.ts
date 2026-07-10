@@ -19,3 +19,18 @@ export function formatDate(date: Date | string) {
     year: "numeric",
   });
 }
+
+/** Masks all but the last 2 digits of a phone number, e.g. "9876543210" -> "98XXXXXX10". */
+export function maskPhone(phone: string) {
+  if (phone.length <= 4) return phone;
+  const head = phone.slice(0, 2);
+  const tail = phone.slice(-2);
+  return `${head}${"X".repeat(phone.length - 4)}${tail}`;
+}
+
+/** Masks an email's local part, e.g. "jane.doe@example.com" -> "j***@example.com". */
+export function maskEmail(email: string) {
+  const [local, domain] = email.split("@");
+  if (!domain) return email;
+  return `${local.slice(0, 1)}${"*".repeat(Math.max(local.length - 1, 3))}@${domain}`;
+}

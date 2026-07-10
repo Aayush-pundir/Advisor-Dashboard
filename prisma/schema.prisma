@@ -38,6 +38,8 @@ model User {
   passwordResetTokens PasswordResetToken[]
   auditLogEntries     AuditLog[]
   notifications       Notification[]
+  assignedLeads       Lead[]               @relation("AssignedSalesRep")
+  supportTickets      SupportTicket[]
 
   @@index([partnerId])
 }
@@ -128,9 +130,11 @@ model Partner {
   icpDigital  Int @default(0) // /10
   icpMindset  Int @default(0) // /10
 
-  badgeTier    String @default("NONE")
-  referralCode String @unique
-  mouVersion   String @default("v1")
+  badgeTier     String    @default("NONE")
+  tierUpdatedAt DateTime?
+  certLevel     String    @default("NONE") // NONE | DEMO | PRODUCT | SALES — Step-up certification track
+  referralCode  String    @unique
+  mouVersion    String    @default("v1")
 
   // Payout details — Phase 1 advisor account layer
   bankAccountName   String?
@@ -151,8 +155,12 @@ model Partner {
   campaigns             Campaign[]
   badges                Badge[]
   activities            ActivityEvent[]
-  referralBonusesEarned ReferralBonus[] @relation("ReferrerBonuses")
-  referralBonusesFor    ReferralBonus[] @relation("ReferredBonuses")
+  referralBonusesEarned ReferralBonus[]         @relation("ReferrerBonuses")
+  referralBonusesFor    ReferralBonus[]         @relation("ReferredBonuses")
+  dealRegistrations     DealRegistration[]
+  mdfRequests           MdfRequest[]
+  supportTickets        SupportTicket[]
+  certifications        CertificationProgress[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -202,8 +210,19 @@ model Lead {
   commissions  Commission[]
   createdAt    DateTime     @default(now())
 
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedSalesRep", fields: [assignedToId], references: [id])
+
+  // Post-sale client health (Task: health score + churn risk)
+  healthScore        Int? // 0-100, computed
+  riskLevel          String    @default("LOW") // LOW | MEDIUM | HIGH
+  npsScore           Int?
+  supportTicketCount Int       @default(0)
+  lastActivityAt     DateTime?
+
   @@index([partnerId])
   @@index([stage])
+  @@index([assignedToId])
 }
 
 // ---------------------------------------------------------------------------
@@ -308,4 +327,85 @@ model KpiSnapshot {
   dormancyPct                 Float // target < 25
   referredSharePct            Float // target >= 20
   createdAt                   DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Deal registration — channel-conflict protection: a partner locks in
+// attribution on a prospect before referring, for a fixed protection window.
+// ---------------------------------------------------------------------------
+
+model DealRegistration {
+  id           String    @id @default(cuid())
+  partnerId    String
+  partner      Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  businessName String
+  contactName  String
+  phone        String
+  email        String?
+  city         String
+  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED | CONVERTED | EXPIRED
+  notes        String?
+  expiresAt    DateTime
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([partnerId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// MDF — Market Development Funds: partners request co-marketing budget.
+// ---------------------------------------------------------------------------
+
+model MdfRequest {
+  id              String    @id @default(cuid())
+  partnerId       String
+  partner         Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  requestedAmount Int
+  approvedAmount  Int?
+  status          String    @default("PENDING") // PENDING | APPROVED | REJECTED | PAID
+  reviewedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([partnerId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Support & escalation
+// ---------------------------------------------------------------------------
+
+model SupportTicket {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partnerId       String?
+  partner         Partner?  @relation(fields: [partnerId], references: [id])
+  subject         String
+  message         String
+  status          String    @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | ESCALATED
+  priority        String    @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+  escalationLevel Int       @default(1) // 1=Partner Success, 2=Partner Manager, 3=Regional Head, 4=Leadership
+  createdAt       DateTime  @default(now())
+  resolvedAt      DateTime?
+
+  @@index([userId])
+  @@index([partnerId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Certification / LMS progress — Step-up track beyond "one demo = certified"
+// ---------------------------------------------------------------------------
+
+model CertificationProgress {
+  id          String   @id @default(cuid())
+  partnerId   String
+  partner     Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  moduleKey   String
+  completedAt DateTime @default(now())
+
+  @@unique([partnerId, moduleKey])
 }

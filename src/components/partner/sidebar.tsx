@@ -8,6 +8,7 @@ import { logoutAction } from "@/app/actions/auth";
 const links = [
   { href: "/partner", label: "Dashboard" },
   { href: "/partner/leads", label: "Leads & Pipeline" },
+  { href: "/partner/leads/bulk-upload", label: "Bulk Upload Leads" },
   { href: "/partner/assets", label: "My Asset Kit" },
   { href: "/partner/campaigns", label: "Campaigns" },
   { href: "/partner/badges", label: "Milestones & Badges" },
