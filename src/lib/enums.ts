@@ -236,3 +236,36 @@ export const MDF_STATUS_LABELS: Record<MdfStatus, string> = {
   REJECTED: "Rejected",
   PAID: "Paid Out",
 };
+
+/** Certification step-up track (Partner.certLevel) — separate from the
+ * one-time onboarding certification (Partner.stage === CERTIFIED). Partners
+ * progress through levels by completing self-serve modules. */
+export const CERT_LEVELS = ["NONE", "DEMO", "PRODUCT", "SALES"] as const;
+export type CertLevel = (typeof CERT_LEVELS)[number];
+
+export const CERT_LEVEL_LABELS: Record<CertLevel, string> = {
+  NONE: "Not started",
+  DEMO: "Demo Certified",
+  PRODUCT: "Product Certified",
+  SALES: "Sales Certified",
+};
+
+export const CERT_MODULES = [
+  { key: "PRODUCT_OVERVIEW", label: "OmniCard product overview", level: "DEMO" },
+  { key: "OBJECTION_HANDLING", label: "Client objection handling", level: "DEMO" },
+  { key: "ADVANCED_PRODUCT", label: "Advanced product & pricing", level: "PRODUCT" },
+  { key: "COMPLIANCE_BASICS", label: "Compliance & KYC basics", level: "PRODUCT" },
+  { key: "SALES_PLAYBOOK", label: "Sales playbook & pitch deck", level: "SALES" },
+  { key: "CRM_MASTERY", label: "Advisor CRM mastery", level: "SALES" },
+] as const;
+export type CertModuleKey = (typeof CERT_MODULES)[number]["key"];
+
+/** Highest cert level for which every module has been completed. */
+export function computeCertLevel(completedKeys: Set<string>): CertLevel {
+  let level: CertLevel = "NONE";
+  for (const l of CERT_LEVELS.slice(1)) {
+    const modulesForLevel = CERT_MODULES.filter((m) => m.level === l);
+    if (modulesForLevel.every((m) => completedKeys.has(m.key))) level = l;
+  }
+  return level;
+}

@@ -119,7 +119,7 @@ async function checkMilestoneBadges(partnerId: string) {
     await db.badge.create({
       data: { partnerId, tier, quarter, clientsAtMilestone: clientsThisQuarter },
     });
-    await db.partner.update({ where: { id: partnerId }, data: { badgeTier: tier } });
+    await db.partner.update({ where: { id: partnerId }, data: { badgeTier: tier, tierUpdatedAt: new Date() } });
 
     await notifyPartnerUsers(partnerId, {
       type: "BADGE_EARNED",

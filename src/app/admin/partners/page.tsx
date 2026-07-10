@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { icpTotal, PARTNER_STAGE_LABELS, type PartnerStage } from "@/lib/enums";
+import { icpTotal, PARTNER_STAGE_LABELS, CERT_LEVEL_LABELS, type PartnerStage, type CertLevel } from "@/lib/enums";
 
 const stageVariant: Record<PartnerStage, "neutral" | "default" | "warning" | "success"> = {
   LEAD: "neutral",
@@ -17,6 +17,13 @@ export default async function AdminPartnersPage() {
   const partners = await db.partner.findMany({
     orderBy: { createdAt: "desc" },
   });
+
+  const cityCounts = new Map<string, number>();
+  for (const p of partners) {
+    if (p.stage === "DORMANT") continue;
+    const key = `${p.city.toLowerCase()}, ${p.state.toLowerCase()}`;
+    cityCounts.set(key, (cityCounts.get(key) ?? 0) + 1);
+  }
 
   return (
     <div>
@@ -37,12 +44,15 @@ export default async function AdminPartnersPage() {
               <th className="p-3 font-medium">City</th>
               <th className="p-3 font-medium">ICP score</th>
               <th className="p-3 font-medium">Stage</th>
-              <th className="p-3 font-medium">Badge</th>
+              <th className="p-3 font-medium">Tier</th>
+              <th className="p-3 font-medium">Certification</th>
             </tr>
           </thead>
           <tbody>
             {partners.map((p) => {
               const score = icpTotal(p);
+              const cityKey = `${p.city.toLowerCase()}, ${p.state.toLowerCase()}`;
+              const hasOverlap = p.stage !== "DORMANT" && (cityCounts.get(cityKey) ?? 0) > 1;
               return (
                 <tr key={p.id} className="border-b border-border last:border-0 hover:bg-brand-light/40">
                   <td className="p-3">
@@ -51,7 +61,14 @@ export default async function AdminPartnersPage() {
                     </Link>
                     <p className="text-xs text-muted">{p.contactName}</p>
                   </td>
-                  <td className="p-3 text-muted">{p.city}</td>
+                  <td className="p-3 text-muted">
+                    <p>{p.city}</p>
+                    {hasOverlap && (
+                      <Badge variant="danger" className="mt-1">
+                        Territory overlap
+                      </Badge>
+                    )}
+                  </td>
                   <td className="p-3">
                     <span className={score >= 70 ? "font-medium text-emerald-700" : score < 50 ? "font-medium text-rose-600" : ""}>
                       {score}
@@ -63,6 +80,7 @@ export default async function AdminPartnersPage() {
                     </Badge>
                   </td>
                   <td className="p-3 text-muted">{p.badgeTier}</td>
+                  <td className="p-3 text-muted">{CERT_LEVEL_LABELS[p.certLevel as CertLevel]}</td>
                 </tr>
               );
             })}

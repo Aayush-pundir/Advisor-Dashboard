@@ -8,9 +8,11 @@ import {
   icpTotal,
   ASSET_LABELS,
   PARTNER_STAGE_LABELS,
+  CERT_LEVEL_LABELS,
   type AssetKey,
   type AssetStatus,
   type PartnerStage,
+  type CertLevel,
 } from "@/lib/enums";
 import { advancePartnerStageAction, certifyPartnerAction } from "@/app/actions/partner";
 import { getAuthedUser } from "@/lib/auth";
@@ -46,6 +48,18 @@ export default async function AdminPartnerDetailPage({
   const score = icpTotal(partner);
   const deliveredAssets = partner.assetKitItems.filter((a) => a.status === "DELIVERED").length;
 
+  const overlappingPartners =
+    partner.stage === "DORMANT"
+      ? []
+      : (
+          await db.partner.findMany({
+            where: { id: { not: partner.id }, stage: { not: "DORMANT" } },
+            select: { id: true, firmName: true, city: true, state: true },
+          })
+        ).filter(
+          (p) => p.city.toLowerCase() === partner.city.toLowerCase() && p.state.toLowerCase() === partner.state.toLowerCase(),
+        );
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-start justify-between">
@@ -58,7 +72,17 @@ export default async function AdminPartnerDetailPage({
         <Badge>{PARTNER_STAGE_LABELS[partner.stage as PartnerStage]}</Badge>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      {overlappingPartners.length > 0 && (
+        <Card className="border-rose-300 bg-rose-50 p-4 text-sm text-rose-800">
+          <p className="font-medium">Territory overlap</p>
+          <p className="mt-1">
+            {overlappingPartners.length} other active partner(s) also serve {partner.city}, {partner.state}:{" "}
+            {overlappingPartners.map((p) => p.firmName).join(", ")}.
+          </p>
+        </Card>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-5">
         <Card className="p-4">
           <p className="text-xs uppercase text-muted">ICP score</p>
           <p className="mt-1 text-xl font-semibold">{score} / 100</p>
@@ -78,6 +102,11 @@ export default async function AdminPartnerDetailPage({
           <p className="mt-1 text-xl font-semibold">
             {formatINR(partner.commissions.reduce((s, c) => s + c.amount, 0))}
           </p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs uppercase text-muted">Tier / Certification</p>
+          <p className="mt-1 text-xl font-semibold">{partner.badgeTier}</p>
+          <p className="text-xs text-muted">{CERT_LEVEL_LABELS[partner.certLevel as CertLevel]}</p>
         </Card>
       </div>
 
