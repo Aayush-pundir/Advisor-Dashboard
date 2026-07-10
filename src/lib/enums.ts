@@ -189,3 +189,22 @@ export function icpTotal(p: {
 /** Commission rates, Step 1.1 / Step 10 */
 export const YEAR1_RATE = 0.15;
 export const TRAILING_RATE = 0.05;
+
+/**
+ * Default annual client churn used for LTV-based earnings projections.
+ * Trailing 5% is paid every year a client stays active, so a client's
+ * expected number of *additional* active years after Year 1 is
+ * (1 - churn) / churn — e.g. at 10% churn, 9 expected trailing years.
+ */
+export const DEFAULT_ANNUAL_CHURN = 0.1;
+
+export function expectedTrailingYears(annualChurn: number) {
+  return (1 - annualChurn) / annualChurn;
+}
+
+/** Per-client lifetime commission (Year-1 + expected trailing years), given ACV. */
+export function ltvCommissionPerClient(acv: number, annualChurn: number) {
+  const year1 = acv * YEAR1_RATE;
+  const trailing = acv * TRAILING_RATE * expectedTrailingYears(annualChurn);
+  return { year1, trailing, total: year1 + trailing };
+}

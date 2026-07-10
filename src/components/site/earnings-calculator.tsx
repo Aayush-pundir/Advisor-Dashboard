@@ -1,65 +1,138 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card } from "@/components/ui/card";
 import { formatINR } from "@/lib/utils";
-import { YEAR1_RATE, TRAILING_RATE } from "@/lib/enums";
-
-const AVG_DEAL_VALUE = 60000; // INR annual contract value assumption
+import {
+  DEFAULT_ANNUAL_CHURN,
+  ltvCommissionPerClient,
+  expectedTrailingYears,
+} from "@/lib/enums";
 
 export function EarningsCalculator() {
-  const [clients, setClients] = useState(5);
+  const [clients, setClients] = useState(10);
+  const [acv, setAcv] = useState(60000);
 
-  const { year1, trailing, total } = useMemo(() => {
-    const revenue = clients * AVG_DEAL_VALUE;
-    const year1 = revenue * YEAR1_RATE;
-    const trailing = revenue * TRAILING_RATE;
-    return { year1, trailing, total: year1 + trailing };
-  }, [clients]);
+  const { year1Total, trailingTotal, lifetimeTotal, tenureYears } = useMemo(() => {
+    const perClient = ltvCommissionPerClient(acv, DEFAULT_ANNUAL_CHURN);
+    return {
+      year1Total: perClient.year1 * clients,
+      trailingTotal: perClient.trailing * clients,
+      lifetimeTotal: perClient.total * clients,
+      tenureYears: 1 + expectedTrailingYears(DEFAULT_ANNUAL_CHURN),
+    };
+  }, [clients, acv]);
 
   return (
-    <Card className="p-6" id="calculator">
-      <h3 className="text-lg font-semibold">Earnings calculator</h3>
-      <p className="mt-1 text-sm text-muted">
-        See what a done-for-you referral channel is worth to your practice.
-      </p>
-
-      <div className="mt-6">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted">Clients referred this year</span>
-          <span className="font-semibold">{clients}</span>
+    <div
+      id="calculator"
+      className="rounded-2xl border border-[#1B1714]/10 bg-[#FAF9F7] p-6 sm:p-9 shadow-[0_24px_60px_rgba(23,19,16,0.08)]"
+    >
+      <div className="text-center">
+        <div className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#D6362B]">
+          Model your earnings
         </div>
-        <input
-          type="range"
-          min={1}
-          max={60}
-          value={clients}
-          onChange={(e) => setClients(Number(e.target.value))}
-          className="mt-2 w-full accent-brand"
-        />
+        <h3
+          className="mt-3 text-[26px] font-semibold leading-tight text-[#171310] sm:text-[32px]"
+          style={{ fontFamily: "var(--font-plex-serif)" }}
+        >
+          What this partnership is worth to your firm
+        </h3>
+        <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-[#1B1714]/65">
+          Based on lifetime client value, assuming a 10% annual churn rate —
+          15% in Year 1, then 5% every year the client stays active.
+        </p>
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-3 text-center">
-        <div className="rounded-lg bg-background p-3">
-          <p className="text-xs text-muted">Year-1 fee (15%)</p>
-          <p className="mt-1 font-semibold">{formatINR(year1)}</p>
+      <div className="mt-9 grid gap-8 sm:grid-cols-2">
+        <div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-[13px] font-semibold text-[#1B1714]/70">
+              Clients you refer
+            </span>
+            <span className="font-[family-name:var(--font-plex-serif)] text-lg font-semibold text-[#171310]">
+              {clients}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={100}
+            value={clients}
+            onChange={(e) => setClients(Number(e.target.value))}
+            className="mt-3 w-full accent-[#D6362B]"
+          />
+          <div className="mt-1 flex justify-between text-[11px] text-[#1B1714]/45">
+            <span>1</span>
+            <span>100</span>
+          </div>
         </div>
-        <div className="rounded-lg bg-background p-3">
-          <p className="text-xs text-muted">Trailing (5% p.a.)</p>
-          <p className="mt-1 font-semibold">{formatINR(trailing)}</p>
+
+        <div>
+          <div className="flex items-baseline justify-between">
+            <span className="text-[13px] font-semibold text-[#1B1714]/70">
+              Avg. contract value / client / yr
+            </span>
+            <span className="font-[family-name:var(--font-plex-serif)] text-lg font-semibold text-[#171310]">
+              {formatINR(acv)}
+            </span>
+          </div>
+          <input
+            type="range"
+            min={20000}
+            max={300000}
+            step={5000}
+            value={acv}
+            onChange={(e) => setAcv(Number(e.target.value))}
+            className="mt-3 w-full accent-[#D6362B]"
+          />
+          <div className="mt-1 flex justify-between text-[11px] text-[#1B1714]/45">
+            <span>Rs 20K</span>
+            <span>Rs 3L</span>
+          </div>
         </div>
-        <div className="rounded-lg bg-brand-light p-3">
-          <p className="text-xs text-brand-dark">Total Year-1 earnings</p>
-          <p className="mt-1 font-semibold text-brand-dark">
-            {formatINR(total)}
+      </div>
+
+      <div className="mt-9 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-xl border border-[#1B1714]/10 bg-white p-4 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#1B1714]/50">
+            Year-1 earnings (15%)
+          </p>
+          <p
+            className="mt-2 text-xl font-semibold text-[#171310]"
+            style={{ fontFamily: "var(--font-plex-serif)" }}
+          >
+            {formatINR(year1Total)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-[#1B1714]/10 bg-white p-4 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#1B1714]/50">
+            Lifetime trailing (5%)
+          </p>
+          <p
+            className="mt-2 text-xl font-semibold text-[#171310]"
+            style={{ fontFamily: "var(--font-plex-serif)" }}
+          >
+            {formatINR(trailingTotal)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-[#D6362B]/25 bg-[#D6362B]/[0.06] p-4 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-[#D6362B]">
+            Total lifetime value
+          </p>
+          <p
+            className="mt-2 text-xl font-semibold text-[#D6362B]"
+            style={{ fontFamily: "var(--font-plex-serif)" }}
+          >
+            {formatINR(lifetimeTotal)}
           </p>
         </div>
       </div>
-      <p className="mt-3 text-xs text-muted">
-        Assumes ~Rs 60,000 average annual contract value per client. Actual
-        payouts vary by client plan and are auto-credited to your OmniCard
-        wallet on go-live.
+
+      <p className="mt-4 text-center text-[12px] leading-relaxed text-[#1B1714]/45">
+        At 10% annual churn, a client stays active for ~{tenureYears.toFixed(0)}{" "}
+        years on average — Year-1 fee is auto-credited on go-live, trailing
+        fees credit every year the client renews.
       </p>
-    </Card>
+    </div>
   );
 }
