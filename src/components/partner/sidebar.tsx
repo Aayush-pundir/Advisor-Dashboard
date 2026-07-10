@@ -14,9 +14,11 @@ const links = [
   { href: "/partner/assets", label: "My Asset Kit" },
   { href: "/partner/campaigns", label: "Campaigns" },
   { href: "/partner/badges", label: "Milestones & Badges" },
+  { href: "/partner/leaderboard", label: "Leaderboard" },
   { href: "/partner/certification", label: "Certification Track" },
   { href: "/partner/referrals", label: "Refer a CA" },
   { href: "/partner/documents", label: "Documents" },
+  { href: "/partner/integrations", label: "Integrations" },
   { href: "/partner/team", label: "Team" },
 ];
 

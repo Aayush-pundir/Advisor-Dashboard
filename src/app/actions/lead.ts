@@ -5,17 +5,13 @@ import { revalidatePath } from "next/cache";
 import { YEAR1_RATE, TRAILING_RATE, BADGE_TIER_META } from "@/lib/enums";
 import type { LeadStage, BadgeTier, UserRole } from "@/lib/enums";
 import { notifyPartnerUsers } from "@/lib/notify";
-import { formatINR } from "@/lib/utils";
+import { formatINR, quarterLabel, quarterStart } from "@/lib/utils";
 import { getAuthedUser } from "@/lib/auth";
 import { canManageLeads, ForbiddenError } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
+import { fireLeadClosedWebhook } from "@/app/actions/integrations";
 
 const TIER_ORDER: Exclude<BadgeTier, "NONE">[] = ["SILVER", "GOLD", "PLATINUM"];
-
-function quarterLabel(d: Date) {
-  const q = Math.floor(d.getMonth() / 3) + 1;
-  return `${d.getFullYear()}-Q${q}`;
-}
 
 /** Step 6 — advance a lead through the sales pipeline; closing triggers
  * commissions (Step 6.6 / Step 10) and milestone badge checks (Step 4/8). */
@@ -77,6 +73,12 @@ export async function advanceLeadStageAction(leadId: string, stage: LeadStage) {
       body: "Year-1 and trailing commission have been credited to your wallet.",
       href: "/partner/leads",
     });
+
+    await fireLeadClosedWebhook(lead.partnerId, {
+      id: lead.id,
+      businessName: lead.businessName,
+      dealValue: lead.dealValue,
+    });
   }
 
   await logAudit({
@@ -121,15 +123,13 @@ export async function reassignLeadAction(leadId: string, assignedToId: string) {
 
 async function checkMilestoneBadges(partnerId: string) {
   const now = new Date();
-  const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
-  const quarterStart = new Date(now.getFullYear(), quarterMonth, 1);
   const quarter = quarterLabel(now);
 
   const clientsThisQuarter = await db.lead.count({
     where: {
       partnerId,
       stage: "CLOSED_WON",
-      closedAt: { gte: quarterStart },
+      closedAt: { gte: quarterStart(now) },
     },
   });
 

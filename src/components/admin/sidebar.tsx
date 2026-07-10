@@ -17,6 +17,8 @@ const links = [
   { href: "/admin/deals", label: "Deal Registrations" },
   { href: "/admin/mdf", label: "MDF Requests" },
   { href: "/admin/support", label: "Support Tickets" },
+  { href: "/admin/referrals", label: "Referral Network" },
+  { href: "/admin/exports", label: "Export Center" },
 ];
 
 const adminOnlyLinks = [

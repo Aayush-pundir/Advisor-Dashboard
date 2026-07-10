@@ -34,3 +34,14 @@ export function maskEmail(email: string) {
   if (!domain) return email;
   return `${local.slice(0, 1)}${"*".repeat(Math.max(local.length - 1, 3))}@${domain}`;
 }
+
+/** Calendar-quarter label, e.g. "2026-Q3" — shared by badge milestones and the leaderboard. */
+export function quarterLabel(d: Date) {
+  const q = Math.floor(d.getMonth() / 3) + 1;
+  return `${d.getFullYear()}-Q${q}`;
+}
+
+export function quarterStart(d: Date) {
+  const quarterMonth = Math.floor(d.getMonth() / 3) * 3;
+  return new Date(d.getFullYear(), quarterMonth, 1);
+}

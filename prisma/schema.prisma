@@ -148,6 +148,11 @@ model Partner {
   referredBy   Partner?  @relation("PartnerReferrals", fields: [referredById], references: [id])
   referrals    Partner[] @relation("PartnerReferrals")
 
+  // Integrations — partner-facing API key + outbound webhook on lead closed
+  apiKey        String? @unique
+  webhookUrl    String?
+  webhookSecret String?
+
   users                 User[]
   assetKitItems         AssetKitItem[]
   leads                 Lead[]
