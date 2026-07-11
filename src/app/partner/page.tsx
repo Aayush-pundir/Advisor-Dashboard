@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/utils";
 import { LEAD_STAGE_LABELS, type LeadStage } from "@/lib/enums";
 import { OnboardingTimeline } from "@/components/partner/onboarding-timeline";
+import { WhatsNextCard } from "@/components/partner/whats-next-card";
 
 export default async function PartnerDashboardPage() {
   const session = await getSession();
@@ -22,6 +23,35 @@ export default async function PartnerDashboardPage() {
 
   const referralLink = `omnicard.in/advisor/${partner.slug}`;
 
+  const [pendingDeals, pendingMdf, openTickets] = await Promise.all([
+    db.dealRegistration.count({ where: { partnerId: partner.id, status: "PENDING" } }),
+    db.mdfRequest.count({ where: { partnerId: partner.id, status: "PENDING" } }),
+    db.supportTicket.count({ where: { userId: session!.userId!, status: { in: ["OPEN", "IN_PROGRESS"] } } }),
+  ]);
+
+  const nudges: { text: string; href: string }[] = [];
+  if (pendingDeals > 0) {
+    nudges.push({
+      text: `${pendingDeals} deal registration${pendingDeals > 1 ? "s" : ""} pending review`,
+      href: "/partner/deals",
+    });
+  }
+  if (pendingMdf > 0) {
+    nudges.push({
+      text: `${pendingMdf} MDF request${pendingMdf > 1 ? "s" : ""} pending review`,
+      href: "/partner/mdf",
+    });
+  }
+  if (openTickets > 0) {
+    nudges.push({
+      text: `${openTickets} support ticket${openTickets > 1 ? "s" : ""} you raised still open`,
+      href: "/partner/notifications",
+    });
+  }
+  if (partner.certLevel === "NONE") {
+    nudges.push({ text: "Start your certification track to level up", href: "/partner/certification" });
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -31,6 +61,8 @@ export default async function PartnerDashboardPage() {
           program.
         </p>
       </div>
+
+      <WhatsNextCard nudges={nudges} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile

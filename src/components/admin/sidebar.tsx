@@ -28,7 +28,15 @@ const adminOnlyLinks = [
   { href: "/admin/escalation", label: "Escalation Matrix" },
 ];
 
-export function AdminSidebar({ name, role }: { name: string; role: string }) {
+export function AdminSidebar({
+  name,
+  role,
+  queueCount = 0,
+}: {
+  name: string;
+  role: string;
+  queueCount?: number;
+}) {
   const pathname = usePathname();
   const isAdmin = role === "ADMIN";
 
@@ -39,6 +47,20 @@ export function AdminSidebar({ name, role }: { name: string; role: string }) {
         <p className="text-xs text-muted">{role.replace("_", " ")}</p>
       </div>
       <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+        <Link
+          href="/admin/queue"
+          className={cn(
+            "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-brand-light hover:text-brand-dark",
+            pathname === "/admin/queue" && "bg-brand-light text-brand-dark",
+          )}
+        >
+          <span>Action Queue</span>
+          {queueCount > 0 && (
+            <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-semibold text-white">
+              {queueCount > 99 ? "99+" : queueCount}
+            </span>
+          )}
+        </Link>
         {links.map((l) => (
           <Link
             key={l.href}

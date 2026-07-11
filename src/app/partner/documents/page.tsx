@@ -11,7 +11,7 @@ export default async function PartnerDocumentsPage() {
     where: { partnerId: partner.id, type: "CLICK", meta: { startsWith: "mou_signed:" } },
     orderBy: { createdAt: "asc" },
   });
-  const designation = mouEvent?.meta?.split(":")[1] || "Authorized Signatory";
+  const designation = partner.designation || mouEvent?.meta?.split(":")[1] || "Authorized Signatory";
   const signedDate = mouEvent?.createdAt ?? partner.createdAt;
 
   const isCertified = partner.stage === "CERTIFIED" || partner.stage === "ACTIVE";
@@ -68,9 +68,12 @@ export default async function PartnerDocumentsPage() {
           <div>
             <p className="mb-2 text-[13px] font-bold text-brand">For Eroute Technologies Pvt. Ltd.</p>
             <SigLine label="Name" value="OmniCard Partnerships Team" />
-            <SigLine label="Date" value={formatDate(signedDate)} />
+            <SigLine
+              label="Date"
+              value={partner.mouCountersignedAt ? formatDate(partner.mouCountersignedAt) : "Pending"}
+            />
             <SigLine label="Designation" value="Authorized Signatory" />
-            <SigLine label="Signature" value="OmniCard" script />
+            <SigLine label="Signature" value={partner.mouCountersignedAt ? "OmniCard" : "Awaiting countersignature"} script />
           </div>
           <div>
             <p className="mb-2 text-[13px] font-bold text-brand">For {partner.firmName}</p>

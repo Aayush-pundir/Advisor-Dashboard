@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
+import { notificationIcon } from "@/lib/notification-icons";
 
 type Notification = {
   id: string;
+  type: string;
   title: string;
   body: string | null;
   href: string | null;
@@ -97,6 +99,7 @@ export function NotificationBell({ initialUnreadCount = 0 }: { initialUnreadCoun
                 className={`flex w-full items-start gap-2 border-b border-border p-3 text-left last:border-0 hover:bg-brand-light/40 ${!n.readAt ? "bg-brand-light/20" : ""}`}
               >
                 <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${!n.readAt ? "bg-brand" : "bg-transparent"}`} />
+                <span className="mt-0.5 shrink-0 text-sm leading-none">{notificationIcon(n.type)}</span>
                 <span className="flex-1">
                   <span className="block text-xs font-medium">{n.title}</span>
                   {n.body && <span className="mt-0.5 block text-[11px] text-muted">{n.body}</span>}

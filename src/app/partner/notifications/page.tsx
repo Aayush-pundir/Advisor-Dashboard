@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { markAllNotificationsReadAction } from "@/app/actions/settings";
+import { notificationIcon } from "@/lib/notification-icons";
 import Link from "next/link";
 
 export default async function PartnerNotificationsPage() {
@@ -35,6 +36,7 @@ export default async function PartnerNotificationsPage() {
             className={`flex items-start gap-3 p-4 hover:bg-brand-light/40 ${!n.readAt ? "bg-brand-light/20" : ""}`}
           >
             <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${!n.readAt ? "bg-brand" : "bg-transparent"}`} />
+            <span className="mt-0.5 shrink-0 text-base leading-none">{notificationIcon(n.type)}</span>
             <div className="flex-1">
               <p className="text-sm font-medium">{n.title}</p>
               {n.body && <p className="mt-0.5 text-xs text-muted">{n.body}</p>}

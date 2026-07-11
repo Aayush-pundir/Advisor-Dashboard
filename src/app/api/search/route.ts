@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const results: Result[] = [];
 
   if (ADMIN_ROLES.includes(user.role as UserRole)) {
-    const [partners, leads] = await Promise.all([
+    const [partners, leads, deals, mdf, tickets, contacts] = await Promise.all([
       db.partner.findMany({
         where: {
           OR: [
@@ -39,6 +39,28 @@ export async function GET(req: NextRequest) {
         include: { partner: { select: { firmName: true } } },
         take: 8,
       }),
+      db.dealRegistration.findMany({
+        where: {
+          OR: [{ businessName: { contains: q } }, { contactName: { contains: q } }],
+        },
+        include: { partner: { select: { firmName: true } } },
+        take: 5,
+      }),
+      db.mdfRequest.findMany({
+        where: { title: { contains: q } },
+        include: { partner: { select: { firmName: true } } },
+        take: 5,
+      }),
+      db.supportTicket.findMany({
+        where: { subject: { contains: q } },
+        include: { user: { select: { name: true } } },
+        take: 5,
+      }),
+      db.marketingContact.findMany({
+        where: { contactName: { contains: q } },
+        include: { partner: { select: { firmName: true } } },
+        take: 5,
+      }),
     ]);
 
     for (const p of partners) {
@@ -57,23 +79,93 @@ export async function GET(req: NextRequest) {
         href: `/admin/leads`,
       });
     }
+    for (const d of deals) {
+      results.push({
+        type: "Deal",
+        label: d.businessName,
+        sublabel: `${d.partner.firmName} · ${d.status}`,
+        href: `/admin/deals`,
+      });
+    }
+    for (const m of mdf) {
+      results.push({
+        type: "MDF",
+        label: m.title,
+        sublabel: `${m.partner.firmName} · ${m.status}`,
+        href: `/admin/mdf`,
+      });
+    }
+    for (const t of tickets) {
+      results.push({
+        type: "Ticket",
+        label: t.subject,
+        sublabel: `${t.user.name} · ${t.status}`,
+        href: `/admin/support`,
+      });
+    }
+    for (const c of contacts) {
+      results.push({
+        type: "Marketing contact",
+        label: c.contactName,
+        sublabel: c.partner.firmName,
+        href: `/admin/marketing-contacts`,
+      });
+    }
   } else if (user.partnerId) {
-    const leads = await db.lead.findMany({
-      where: {
-        partnerId: user.partnerId,
-        OR: [
-          { businessName: { contains: q } },
-          { contactName: { contains: q } },
-        ],
-      },
-      take: 10,
-    });
+    const [leads, deals, mdf, contacts] = await Promise.all([
+      db.lead.findMany({
+        where: {
+          partnerId: user.partnerId,
+          OR: [{ businessName: { contains: q } }, { contactName: { contains: q } }],
+        },
+        take: 8,
+      }),
+      db.dealRegistration.findMany({
+        where: {
+          partnerId: user.partnerId,
+          OR: [{ businessName: { contains: q } }, { contactName: { contains: q } }],
+        },
+        take: 5,
+      }),
+      db.mdfRequest.findMany({
+        where: { partnerId: user.partnerId, title: { contains: q } },
+        take: 5,
+      }),
+      db.marketingContact.findMany({
+        where: { partnerId: user.partnerId, contactName: { contains: q } },
+        take: 5,
+      }),
+    ]);
     for (const l of leads) {
       results.push({
         type: "Lead",
         label: l.businessName,
         sublabel: `${l.contactName} · ${l.stage}`,
         href: `/partner/leads`,
+      });
+    }
+    for (const d of deals) {
+      results.push({
+        type: "Deal",
+        label: d.businessName,
+        sublabel: d.status,
+        href: `/partner/deals`,
+      });
+    }
+    for (const m of mdf) {
+      results.push({
+        type: "MDF",
+        label: m.title,
+        sublabel: m.status,
+        href: `/partner/mdf`,
+      });
+    }
+    for (const c of contacts) {
+      results.push({
+        type: "Marketing contact",
+        label: c.contactName,
+        sublabel: c.city ?? "",
+        href: `/partner/marketing-contacts`,
       });
     }
   }

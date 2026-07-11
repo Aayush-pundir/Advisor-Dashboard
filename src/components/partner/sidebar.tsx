@@ -17,7 +17,6 @@ const links = [
   { href: "/partner/leaderboard", label: "Leaderboard" },
   { href: "/partner/certification", label: "Certification Track" },
   { href: "/partner/referrals", label: "Refer a CA" },
-  { href: "/partner/documents", label: "Documents" },
   { href: "/partner/integrations", label: "Integrations" },
   { href: "/partner/team", label: "Team" },
 ];
@@ -62,6 +61,15 @@ export function PartnerSidebar({
               {unreadCount}
             </span>
           )}
+        </Link>
+        <Link
+          href="/partner/documents"
+          className={cn(
+            "rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-brand-light hover:text-brand-dark",
+            pathname === "/partner/documents" && "bg-brand-light text-brand-dark",
+          )}
+        >
+          Documents
         </Link>
         {isCertified &&
           links.map((l) => (

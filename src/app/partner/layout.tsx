@@ -6,7 +6,7 @@ import { PartnerSidebar } from "@/components/partner/sidebar";
 import { TopBar } from "@/components/shared/top-bar";
 import { SupportWidget } from "@/components/shared/support-widget";
 
-const ONBOARDING_ALLOWED_PATHS = ["/partner", "/partner/settings", "/partner/notifications"];
+const ONBOARDING_ALLOWED_PATHS = ["/partner", "/partner/settings", "/partner/notifications", "/partner/documents"];
 
 export default async function PartnerLayout({
   children,

@@ -32,7 +32,7 @@ export function SupportWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 print:hidden">
+    <div className="fixed bottom-6 left-6 z-50 print:hidden">
       {open && (
         <div className="mb-3 w-80 overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
           <div className="flex items-center justify-between bg-brand px-4 py-3 text-white">
