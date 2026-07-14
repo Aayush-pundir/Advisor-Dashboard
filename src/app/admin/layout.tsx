@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/sidebar";
 import { TopBar } from "@/components/shared/top-bar";
 import { SupportWidget } from "@/components/shared/support-widget";
+import { MobileNavProvider } from "@/components/shared/mobile-nav-context";
 
 export default async function AdminLayout({
   children,
@@ -24,15 +25,17 @@ export default async function AdminLayout({
   const queueCount = pendingAccept + pendingCountersign + awaitingDemo + openTickets;
 
   return (
-    <div className="flex min-h-screen">
-      <AdminSidebar name={user.name} role={user.role} queueCount={queueCount} />
-      <div className="flex flex-1 flex-col">
-        <TopBar unreadCount={unreadCount} />
-        <main className="flex-1 overflow-y-auto bg-background p-8">
-          {children}
-        </main>
+    <MobileNavProvider>
+      <div className="flex min-h-screen">
+        <AdminSidebar name={user.name} role={user.role} queueCount={queueCount} />
+        <div className="flex flex-1 flex-col">
+          <TopBar unreadCount={unreadCount} />
+          <main className="flex-1 overflow-y-auto bg-background p-4 sm:p-8">
+            {children}
+          </main>
+        </div>
+        <SupportWidget />
       </div>
-      <SupportWidget />
-    </div>
+    </MobileNavProvider>
   );
 }

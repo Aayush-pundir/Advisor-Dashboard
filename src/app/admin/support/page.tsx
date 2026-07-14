@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { TicketActions } from "@/components/admin/ticket-actions";
+import { CsvExportButton } from "@/components/admin/csv-export-button";
 
 const ESCALATION_LABELS: Record<number, string> = {
   1: "L1 · Partner Success",
@@ -33,10 +34,15 @@ export default async function AdminSupportPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Support Tickets</h1>
-      <p className="mt-1 text-muted">
-        Raised from the support widget by partners and internal team members alike.
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Support Tickets</h1>
+          <p className="mt-1 text-muted">
+            Raised from the support widget by partners and internal team members alike.
+          </p>
+        </div>
+        <CsvExportButton href="/admin/support/export" />
+      </div>
 
       <Card className="mt-6 divide-y divide-border">
         {tickets.map((t) => (

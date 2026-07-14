@@ -5,6 +5,7 @@ import type { UserRole } from "@/lib/enums";
 import { redirect } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
+import { CsvExportButton } from "@/components/admin/csv-export-button";
 
 export default async function AdminAuditPage() {
   const actor = await getAuthedUser();
@@ -17,8 +18,13 @@ export default async function AdminAuditPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Audit Log</h1>
-      <p className="mt-1 text-muted">Who certified, advanced, or approved what, across the CRM.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Audit Log</h1>
+          <p className="mt-1 text-muted">Who certified, advanced, or approved what, across the CRM.</p>
+        </div>
+        <CsvExportButton href="/admin/audit/export" />
+      </div>
 
       <Card className="mt-6 overflow-x-auto">
         <table className="w-full text-sm">

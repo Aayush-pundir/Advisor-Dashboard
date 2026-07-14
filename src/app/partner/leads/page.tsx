@@ -8,6 +8,7 @@ import { LEAD_STAGE_LABELS, type LeadStage } from "@/lib/enums";
 import { AddLeadForm } from "@/components/partner/add-lead-form";
 import { LeadsBulkUploader } from "@/components/partner/leads-bulk-uploader";
 import { MarketingContactsUploader } from "@/components/partner/marketing-contacts-uploader";
+import { CsvExportButton } from "@/components/partner/csv-export-button";
 
 const stageVariant: Record<LeadStage, "neutral" | "default" | "success" | "warning" | "danger"> = {
   CAPTURED: "neutral",
@@ -74,9 +75,10 @@ async function LeadsTab({ partnerId }: { partnerId: string }) {
 
   return (
     <div className="mt-6">
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <AddLeadForm />
         <LeadsBulkUploader />
+        <CsvExportButton href="/partner/leads/export" />
       </div>
 
       <Card className="mt-6 overflow-x-auto">
@@ -131,7 +133,10 @@ async function MarketingTab({ partnerId }: { partnerId: string }) {
         run co-branded campaigns to them — not a sales pipeline, and phone/
         email stay masked from our team unless explicitly revealed.
       </p>
-      <MarketingContactsUploader />
+      <div className="flex flex-wrap items-center gap-3">
+        <MarketingContactsUploader />
+        <CsvExportButton href="/partner/leads/marketing-contacts-export" />
+      </div>
 
       <Card className="mt-6 overflow-x-auto">
         <table className="w-full text-sm">

@@ -11,6 +11,7 @@ import { RevealPii } from "@/components/admin/reveal-pii";
 import { ReassignLeadSelect } from "@/components/admin/reassign-lead-select";
 import { LEAD_CONFLICT_PROTECTION_DAYS } from "@/lib/enums";
 import { conflictProtectionCutoff } from "@/lib/lead-conflict";
+import { CsvExportButton } from "@/components/admin/csv-export-button";
 
 export default async function AdminLeadsPage() {
   const [leads, actor, reps] = await Promise.all([
@@ -34,13 +35,18 @@ export default async function AdminLeadsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">Lead-to-Revenue</h1>
-      <p className="mt-1 text-muted">
-        Every client lead, across every advisor — capture, qualify, contact,
-        demo, close. Leads referred to the same contact by more than one
-        advisor within {LEAD_CONFLICT_PROTECTION_DAYS} days are flagged as a
-        channel conflict automatically.
-      </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Lead-to-Revenue</h1>
+          <p className="mt-1 text-muted">
+            Every client lead, across every advisor — capture, qualify, contact,
+            demo, close. Leads referred to the same contact by more than one
+            advisor within {LEAD_CONFLICT_PROTECTION_DAYS} days are flagged as a
+            channel conflict automatically.
+          </p>
+        </div>
+        {canManage && <CsvExportButton href="/admin/leads/export" />}
+      </div>
 
       <Card className="mt-6 overflow-x-auto">
         <table className="w-full text-sm">

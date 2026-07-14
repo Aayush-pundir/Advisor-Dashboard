@@ -8,6 +8,7 @@ import { CAMPAIGN_TYPES, type CampaignStatus, type UserRole } from "@/lib/enums"
 import { getAuthedUser } from "@/lib/auth";
 import { canManageCampaigns } from "@/lib/permissions";
 import { RevealMarketingContact } from "@/components/admin/reveal-marketing-contact";
+import { CsvExportButton } from "@/components/admin/csv-export-button";
 
 const statusVariant: Record<CampaignStatus, "neutral" | "warning" | "default" | "success"> = {
   DRAFTED: "neutral",
@@ -118,11 +119,16 @@ export default async function AdminCampaignsPage() {
       </Card>
 
       <div>
-        <h2 className="text-lg font-semibold">Marketing contact lists</h2>
-        <p className="mt-1 text-sm text-muted">
-          Client rosters uploaded by partners purely for campaign targeting —
-          not a sales pipeline. Contact info is masked by default; reveal is logged.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">Marketing contact lists</h2>
+            <p className="mt-1 text-sm text-muted">
+              Client rosters uploaded by partners purely for campaign targeting —
+              not a sales pipeline. Contact info is masked by default; reveal is logged.
+            </p>
+          </div>
+          {canManage && <CsvExportButton href="/admin/campaigns/marketing-contacts/export" label="Export CSV" />}
+        </div>
         <Card className="mt-3 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-border text-left text-muted">

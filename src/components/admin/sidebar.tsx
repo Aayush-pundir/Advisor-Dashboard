@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "@/app/actions/auth";
+import { useMobileNav } from "@/components/shared/mobile-nav-context";
 
 const links = [
   { href: "/admin/partners", label: "Partners (CRM)" },
@@ -31,14 +32,30 @@ export function AdminSidebar({
 }) {
   const pathname = usePathname();
   const isAdmin = role === "ADMIN";
+  const { open, setOpen } = useMobileNav();
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r border-border bg-surface">
+    <>
+      {open && (
+        <div
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+        />
+      )}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r border-border bg-surface transition-transform duration-200 md:relative md:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
       <div className="border-b border-border p-5">
         <p className="text-sm font-semibold">{name}</p>
         <p className="text-xs text-muted">{role.replace("_", " ")}</p>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+      <nav
+        onClick={() => setOpen(false)}
+        className="flex flex-1 flex-col gap-1 overflow-y-auto p-3"
+      >
         <Link
           href="/admin"
           className={cn(
@@ -99,6 +116,7 @@ export function AdminSidebar({
           Sign out
         </button>
       </form>
-    </aside>
+      </aside>
+    </>
   );
 }

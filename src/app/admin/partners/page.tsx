@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn, formatINR, formatDate } from "@/lib/utils";
 import { PartnersBulkUploader } from "@/components/admin/partners-bulk-uploader";
+import { CsvExportButton } from "@/components/admin/csv-export-button";
 import {
   icpTotal,
   PARTNER_STAGES,
@@ -62,7 +63,10 @@ export default async function AdminPartnersPage({
             ICP-scored CA pipeline — pursue 70+, skip &lt;50.
           </p>
         </div>
-        <PartnersBulkUploader />
+        <div className="flex items-center gap-2">
+          <CsvExportButton href="/admin/partners/export" label="Export CSV" />
+          <PartnersBulkUploader />
+        </div>
       </div>
 
       <div className="mt-4 flex gap-1 border-b border-border">

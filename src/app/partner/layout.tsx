@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { PartnerSidebar } from "@/components/partner/sidebar";
 import { TopBar } from "@/components/shared/top-bar";
 import { SupportWidget } from "@/components/shared/support-widget";
+import { MobileNavProvider } from "@/components/shared/mobile-nav-context";
 
 const ONBOARDING_ALLOWED_PATHS = ["/partner", "/partner/settings", "/partner/notifications", "/partner/documents"];
 
@@ -30,15 +31,17 @@ export default async function PartnerLayout({
   }
 
   return (
-    <div className="flex min-h-screen">
-      <PartnerSidebar firmName={partner.firmName} isCertified={isCertified} />
-      <div className="flex flex-1 flex-col">
-        <TopBar unreadCount={unreadCount} />
-        <main className="flex-1 overflow-y-auto bg-background p-8">
-          {children}
-        </main>
+    <MobileNavProvider>
+      <div className="flex min-h-screen">
+        <PartnerSidebar firmName={partner.firmName} isCertified={isCertified} />
+        <div className="flex flex-1 flex-col">
+          <TopBar unreadCount={unreadCount} />
+          <main className="flex-1 overflow-y-auto bg-background p-4 sm:p-8">
+            {children}
+          </main>
+        </div>
+        <SupportWidget />
       </div>
-      <SupportWidget />
-    </div>
+    </MobileNavProvider>
   );
 }
