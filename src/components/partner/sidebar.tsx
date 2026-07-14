@@ -7,27 +7,16 @@ import { logoutAction } from "@/app/actions/auth";
 
 const links = [
   { href: "/partner/leads", label: "Leads & Pipeline" },
-  { href: "/partner/leads/bulk-upload", label: "Bulk Upload Leads" },
-  { href: "/partner/marketing-contacts", label: "Marketing Contact List" },
-  { href: "/partner/deals", label: "Deal Registration" },
-  { href: "/partner/mdf", label: "MDF Requests" },
   { href: "/partner/assets", label: "My Asset Kit" },
   { href: "/partner/campaigns", label: "Campaigns" },
-  { href: "/partner/badges", label: "Milestones & Badges" },
-  { href: "/partner/leaderboard", label: "Leaderboard" },
-  { href: "/partner/certification", label: "Certification Track" },
-  { href: "/partner/referrals", label: "Refer a CA" },
-  { href: "/partner/integrations", label: "Integrations" },
-  { href: "/partner/team", label: "Team" },
+  { href: "/partner/achievements", label: "Achievements" },
 ];
 
 export function PartnerSidebar({
   firmName,
-  unreadCount = 0,
   isCertified = true,
 }: {
   firmName: string;
-  unreadCount?: number;
   isCertified?: boolean;
 }) {
   const pathname = usePathname();
@@ -47,20 +36,6 @@ export function PartnerSidebar({
           )}
         >
           {isCertified ? "Dashboard" : "Onboarding Status"}
-        </Link>
-        <Link
-          href="/partner/notifications"
-          className={cn(
-            "flex items-center justify-between rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-brand-light hover:text-brand-dark",
-            pathname === "/partner/notifications" && "bg-brand-light text-brand-dark",
-          )}
-        >
-          <span>Notifications</span>
-          {unreadCount > 0 && (
-            <span className="rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-semibold text-white">
-              {unreadCount}
-            </span>
-          )}
         </Link>
         <Link
           href="/partner/documents"

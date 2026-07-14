@@ -199,47 +199,43 @@ advisor side, on top of the auth/account layer above.
 **Ops layer** (`src/lib/notify.ts`, `src/components/shared/*`)
 - In-app notification bell (top-right, `Notification` model, `/api/notifications`)
   for both partner and internal roles — `notifyPartnerUsers()` fans out to every
-  user on a firm, `notifyInternalUsers()` fans out by role.
+  user on a firm, `notifyInternalUsers()` fans out by role. Each entry shows
+  a type-specific icon (`src/lib/notification-icons.ts`) for fast scanning.
 - Global command palette (Cmd/Ctrl+K) instead of a dedicated search page —
-  search lives inside the surface it's needed on, per the product brief.
-- Floating support widget (WhatsApp deep-link + ticket form) plus a 4-tier
-  escalation matrix (`SupportTicket.escalationLevel`, `/admin/escalation`,
-  `/admin/support`).
+  reaches partners, leads, support tickets, and marketing contacts.
+- Floating support widget (bottom-left, WhatsApp deep-link + ticket form).
+  Escalation level shows inline on each ticket in `/admin/support` rather
+  than as a separate static reference page.
 
 **Bulk data + PII masking** (`src/app/actions/bulk.ts`, `src/lib/utils.ts`)
-- Partners bulk-import their client book via CSV (`/partner/leads/bulk-upload`,
-  `papaparse` client-side parse + preview); admin bulk-imports partner
-  cohorts (`/admin/partners/bulk-upload`).
+- Partners bulk-import their client book via CSV, or add one lead at a time —
+  both live as an expandable panel inside `/partner/leads` (no separate
+  route) alongside a "Marketing Contacts" sub-tab for the co-branded
+  campaign list. Admin bulk-imports partner cohorts the same way, as an
+  expandable panel on `/admin/partners`.
 - Client phone/email are masked by default everywhere (`maskPhone`,
   `maskEmail`) and only unmasked through an explicit, permission-checked,
   audited server action (`revealLeadPiiAction`) — so marketing/ops can run
   campaigns off bulk-uploaded data without raw PII reaching the browser
   until someone deliberately reveals it.
 
-**Deal registration + MDF** (`src/app/actions/deals.ts`, `src/app/actions/mdf.ts`)
-- Channel-conflict protection: a partner locks in attribution on a prospect
-  (by phone number) for a 90-day window before referring; a second partner
-  registering the same phone while it's still protected is blocked with a
-  clear error instead of silently double-attributing the lead.
-- Market Development Funds: partners request co-marketing budget per
-  campaign; admin approves an amount (may differ from the request) and
-  later marks it paid out.
+**Channel-conflict protection** (`src/lib/lead-conflict.ts`)
+- Inherited directly into every lead a partner submits (one-by-one, bulk
+  CSV, or public capture) rather than requiring a separate "register a deal
+  first" step: if another partner already has an active lead for the same
+  phone number within a 90-day window, the new submission is blocked with a
+  clear error. Admin's `/admin/leads` flags any conflict inline.
 
-**Tiering, territory, and certification** (`Partner.badgeTier`,
-`Partner.certLevel`, `CertificationProgress`)
+**Tiering and certification** (`Partner.badgeTier`, `Partner.certLevel`,
+`CertificationProgress`)
 - Badge tier (Silver/Gold/Platinum) updates now stamp `tierUpdatedAt`.
 - Admin's partner list/detail pages flag "territory overlap" when multiple
   non-dormant partners share a city+state, so overlapping coverage is visible
   without a hard geo-exclusivity rule that would block onboarding.
-- Self-serve certification track (`/partner/certification`): completing every
-  module for a level (Demo → Product → Sales) auto-bumps `Partner.certLevel`.
-
-**Post-sale health + churn risk** (`src/lib/health.ts`, `/admin/clients`)
-- Every closed-won lead gets a deterministic health score from recency of
-  contact, support-ticket load, and NPS — recomputed on every page load
-  (`recomputeAllClientHealth`) so it never goes stale without a cron job.
-- Risk-level transitions to HIGH trigger an internal notification so account
-  teams see who needs attention without polling the list manually.
+- Self-serve certification track (`/partner/achievements?tab=certification`):
+  completing every module for a level (Demo → Product → Sales) auto-bumps
+  `Partner.certLevel`. Badges, the leaderboard, certification, and referrals
+  all live as sub-tabs of a single `/partner/achievements` page.
 
 **Lead routing + ops efficiency** (`src/lib/assignment.ts`, `/admin/ops`)
 - New leads (single capture and bulk upload) auto-assign to whichever active
@@ -248,6 +244,23 @@ advisor side, on top of the auth/account layer above.
   whoever was assigned first. Admins can override the assignment inline.
 - `/admin/ops` tracks per-rep workload and 24-hour first-contact SLA
   compliance.
+
+**Navigation, deliberately kept narrow** — the admin sidebar is 8 items
+(Dashboard, Partners, Leads, Ops Efficiency, Campaigns, Commissions, Support,
+Exports) plus admin-only Team/Audit/Settings; the partner sidebar is 6
+(Dashboard, Documents, Leads, Assets, Campaigns, Achievements) plus Settings.
+Every feature above still exists — most live as a tab, an expandable panel,
+or a section on one of these pages rather than a route of its own:
+- `/admin` doubles as the Action Queue (partners awaiting accept/
+  countersign/demo, open tickets) above the KPI funnels.
+- `/admin/partners` has an inline bulk-add panel and a "Referral Network"
+  tab; `/admin/campaigns` has a "Marketing contact lists" section.
+- `/partner/leads` has "My Leads" (one-by-one + bulk CSV) and "Marketing
+  Contacts" tabs; `/partner/achievements` has Badges/Leaderboard/
+  Certification/Refer-a-CA tabs; `/partner/settings` has Team and
+  Integrations (API key + webhook) sections alongside profile/payout.
+- `/partner/documents` (signed MOU + certificate, both printable) is
+  reachable during onboarding, not just after certification.
 
 ### What's stubbed vs. what's real
 

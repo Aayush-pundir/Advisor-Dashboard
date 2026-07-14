@@ -12,6 +12,7 @@ import { logAudit } from "@/lib/audit";
 import { fireLeadClosedWebhook } from "@/app/actions/integrations";
 import { pickNextSalesRep } from "@/lib/assignment";
 import { notifyInternalUsers } from "@/lib/notify";
+import { findConflictingLead, conflictErrorMessage } from "@/lib/lead-conflict";
 
 const TIER_ORDER: Exclude<BadgeTier, "NONE">[] = ["SILVER", "GOLD", "PLATINUM"];
 
@@ -34,6 +35,11 @@ export async function addLeadManuallyAction(
 
   if (!businessName || !contactName || !phone || !email) {
     return { ok: false, error: "Please fill in business name, contact name, phone and email." };
+  }
+
+  const conflict = await findConflictingLead(phone, session.partnerId);
+  if (conflict) {
+    return { ok: false, error: conflictErrorMessage(conflict.partner.firmName) };
   }
 
   const assignedToId = await pickNextSalesRep();
@@ -200,7 +206,7 @@ async function checkMilestoneBadges(partnerId: string) {
       type: "BADGE_EARNED",
       title: `${tier} Advisor badge earned!`,
       body: `${clientsThisQuarter} clients closed this quarter — ${BADGE_TIER_META[tier].gift}.`,
-      href: "/partner/badges",
+      href: "/partner/achievements",
     });
   }
 }

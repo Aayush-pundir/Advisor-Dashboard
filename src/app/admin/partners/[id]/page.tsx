@@ -183,7 +183,7 @@ export default async function AdminPartnerDetailPage({
       {/* Per-CA checklist — Step 3 */}
       <Card>
         <CardHeader>
-          <CardTitle>Per-CA creation checklist (Step 3)</CardTitle>
+          <CardTitle>Asset kit checklist</CardTitle>
         </CardHeader>
         <CardContent className="divide-y divide-border p-0">
           {partner.assetKitItems.map((item) => (

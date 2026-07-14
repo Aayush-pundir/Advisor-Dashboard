@@ -78,7 +78,7 @@ export async function inviteTeammateAction(formData: FormData): Promise<{ ok: bo
     },
   });
 
-  revalidatePath("/partner/team");
+  revalidatePath("/partner/settings");
   return { ok: true, tempPassword };
 }
 
@@ -91,7 +91,7 @@ export async function removeTeammateAction(userId: string) {
   if (target.id === user.id) throw new Error("Cannot remove yourself");
 
   await db.user.update({ where: { id: userId }, data: { active: false } });
-  revalidatePath("/partner/team");
+  revalidatePath("/partner/settings");
 }
 
 export async function markNotificationReadAction(notificationId: string) {

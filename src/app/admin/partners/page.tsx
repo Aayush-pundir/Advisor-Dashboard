@@ -3,6 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { cn, formatINR, formatDate } from "@/lib/utils";
+import { PartnersBulkUploader } from "@/components/admin/partners-bulk-uploader";
 import {
   icpTotal,
   PARTNER_STAGES,
@@ -26,9 +28,10 @@ const stageVariant: Record<PartnerStage, "neutral" | "default" | "warning" | "su
 export default async function AdminPartnersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string; tier?: string; cert?: string; city?: string }>;
+  searchParams: Promise<{ stage?: string; tier?: string; cert?: string; city?: string; view?: string }>;
 }) {
-  const { stage, tier, cert, city } = await searchParams;
+  const { stage, tier, cert, city, view } = await searchParams;
+  const activeView = view === "referrals" ? "referrals" : "partners";
 
   const [partners, allPartners] = await Promise.all([
     db.partner.findMany({
@@ -56,11 +59,37 @@ export default async function AdminPartnersPage({
         <div>
           <h1 className="text-2xl font-bold">Partners (CRM)</h1>
           <p className="mt-1 text-muted">
-            ICP-scored CA pipeline — pursue 70+, skip &lt;50 (Step 1.2).
+            ICP-scored CA pipeline — pursue 70+, skip &lt;50.
           </p>
         </div>
+        <PartnersBulkUploader />
       </div>
 
+      <div className="mt-4 flex gap-1 border-b border-border">
+        <Link
+          href="/admin/partners"
+          className={cn(
+            "border-b-2 px-4 py-2 text-sm font-medium",
+            activeView === "partners" ? "border-brand text-brand-dark" : "border-transparent text-muted hover:text-foreground",
+          )}
+        >
+          All Partners
+        </Link>
+        <Link
+          href="/admin/partners?view=referrals"
+          className={cn(
+            "border-b-2 px-4 py-2 text-sm font-medium",
+            activeView === "referrals" ? "border-brand text-brand-dark" : "border-transparent text-muted hover:text-foreground",
+          )}
+        >
+          Referral Network
+        </Link>
+      </div>
+
+      {activeView === "referrals" ? (
+        <ReferralNetworkView />
+      ) : (
+      <>
       <form method="GET" className="mt-4 flex flex-wrap items-end gap-3">
         <div>
           <label className="block text-xs font-medium text-muted">Stage</label>
@@ -182,6 +211,78 @@ export default async function AdminPartnersPage({
         </table>
         {partners.length === 0 && (
           <p className="p-6 text-center text-muted">No partners yet.</p>
+        )}
+      </Card>
+      </>
+      )}
+    </div>
+  );
+}
+
+async function ReferralNetworkView() {
+  const partners = await db.partner.findMany({
+    include: {
+      referrals: { select: { id: true, firmName: true, stage: true, createdAt: true } },
+      referralBonusesEarned: { select: { amount: true, status: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const roots = partners.filter((p) => p.referrals.length > 0);
+  const totalBonusesPaid = partners
+    .flatMap((p) => p.referralBonusesEarned)
+    .filter((b) => b.status === "PAID")
+    .reduce((s, b) => s + b.amount, 0);
+  const totalReferrals = partners.reduce((s, p) => s + p.referrals.length, 0);
+
+  return (
+    <div className="mt-6">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="p-4">
+          <p className="text-xs uppercase text-muted">Referring partners</p>
+          <p className="mt-1 text-xl font-semibold">{roots.length}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs uppercase text-muted">Total referrals</p>
+          <p className="mt-1 text-xl font-semibold">{totalReferrals}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-xs uppercase text-muted">Bonuses paid</p>
+          <p className="mt-1 text-xl font-semibold">{formatINR(totalBonusesPaid)}</p>
+        </Card>
+      </div>
+
+      <Card className="mt-6 divide-y divide-border">
+        {roots.map((p) => {
+          const bonusEarned = p.referralBonusesEarned.reduce((s, b) => s + b.amount, 0);
+          return (
+            <div key={p.id} className="p-4">
+              <div className="flex items-center justify-between">
+                <Link href={`/admin/partners/${p.id}`} className="font-medium text-brand-dark hover:underline">
+                  {p.firmName}
+                </Link>
+                <span className="text-xs text-muted">
+                  {p.referrals.length} referred &middot; {formatINR(bonusEarned)} earned
+                </span>
+              </div>
+              <div className="mt-2 flex flex-col gap-1 border-l-2 border-border pl-4">
+                {p.referrals.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between text-sm">
+                    <Link href={`/admin/partners/${r.id}`} className="hover:underline">
+                      {r.firmName}
+                    </Link>
+                    <span className="flex items-center gap-2 text-xs text-muted">
+                      {formatDate(r.createdAt)}
+                      <Badge variant="neutral">{r.stage}</Badge>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        {roots.length === 0 && (
+          <p className="p-6 text-center text-muted">No referrals yet.</p>
         )}
       </Card>
     </div>

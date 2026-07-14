@@ -19,8 +19,8 @@ export async function notifyPartnerUsers(
   });
 }
 
-/** Notifies internal ops users (by role) — used for support tickets, deal
- * registrations, and MDF requests that need admin/partner-manager attention. */
+/** Notifies internal ops users (by role) — used for support tickets and
+ * other events that need admin/partner-manager attention. */
 export async function notifyInternalUsers(
   roles: string[],
   notification: { type: string; title: string; body?: string; href?: string },

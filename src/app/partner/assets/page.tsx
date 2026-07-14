@@ -23,7 +23,7 @@ export default async function PartnerAssetsPage() {
     <div>
       <h1 className="text-2xl font-bold">My Asset Kit</h1>
       <p className="mt-1 text-muted">
-        Everything OmniCard creates for you — Step 3 checklist. {delivered} of{" "}
+        Everything OmniCard creates for you. {delivered} of{" "}
         {items.length} delivered.
       </p>
 

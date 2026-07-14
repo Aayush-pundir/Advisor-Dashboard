@@ -21,9 +21,8 @@ export default async function SignupPage({
       <div className="mx-auto w-full max-w-xl px-4 py-14">
         <h1 className="text-2xl font-bold">Become a Certified Advisor</h1>
         <p className="mt-2 text-muted">
-          Step 1.2 of the program: your interest is captured instantly. A
-          partner manager will reach out to schedule your demo — attend it
-          and you&apos;re auto-certified.
+          Your interest is captured instantly. A partner manager will reach
+          out to schedule your demo — attend it and you&apos;re auto-certified.
         </p>
 
         <Card className="mt-6 p-6">

@@ -2,9 +2,15 @@ import { getAuthedUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { formatDate } from "@/lib/utils";
 import { updateProfileAction, updatePayoutAction } from "@/app/actions/settings";
 import { signOutEverywhereAction } from "@/app/actions/auth";
+import { ApiKeyPanel } from "@/components/partner/api-key-panel";
+import { WebhookForm } from "@/components/partner/webhook-form";
+import { InviteTeammateForm } from "@/components/partner/invite-teammate-form";
+import { RemoveTeammateButton } from "@/components/partner/remove-teammate-button";
 
 export default async function PartnerSettingsPage({
   searchParams,
@@ -12,7 +18,10 @@ export default async function PartnerSettingsPage({
   searchParams: Promise<{ saved?: string }>;
 }) {
   const user = await getAuthedUser();
-  const partner = await db.partner.findUniqueOrThrow({ where: { id: user!.partnerId! } });
+  const [partner, teammates] = await Promise.all([
+    db.partner.findUniqueOrThrow({ where: { id: user!.partnerId! } }),
+    db.user.findMany({ where: { partnerId: user!.partnerId! }, orderBy: { createdAt: "asc" } }),
+  ]);
   const { saved } = await searchParams;
 
   return (
@@ -82,6 +91,72 @@ export default async function PartnerSettingsPage({
               Sign out of all devices
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Team</CardTitle>
+        </CardHeader>
+        <CardContent className="divide-y divide-border p-0">
+          {teammates.map((t) => (
+            <div key={t.id} className="flex items-center justify-between px-5 py-3">
+              <div>
+                <p className="text-sm font-medium">
+                  {t.name} {!t.active && <span className="text-xs text-muted">(deactivated)</span>}
+                </p>
+                <p className="text-xs text-muted">
+                  {t.email} &middot; joined {formatDate(t.createdAt)}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant={t.firmRole === "OWNER" ? "default" : "neutral"}>{t.firmRole}</Badge>
+                {user!.firmRole === "OWNER" && t.id !== user!.id && t.active && (
+                  <RemoveTeammateButton userId={t.id} />
+                )}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+        {user!.firmRole === "OWNER" && (
+          <CardContent className="border-t border-border pt-4">
+            <p className="mb-3 text-sm font-medium">Invite a teammate</p>
+            <InviteTeammateForm />
+          </CardContent>
+        )}
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Integrations</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          <div>
+            <p className="text-sm font-medium">API key</p>
+            <p className="mt-1 text-xs text-muted">
+              Sync leads into your own CRM — generate an API key and register a webhook that fires the moment one of your leads closes won.
+            </p>
+            <div className="mt-3">
+              <ApiKeyPanel hasKey={!!partner.apiKey} />
+            </div>
+          </div>
+          <div className="border-t border-border pt-6">
+            <p className="text-sm font-medium">Webhook URL</p>
+            <p className="mt-1 text-xs text-muted">
+              We&apos;ll POST a JSON payload to this URL when a lead closes won,
+              signed with HMAC-SHA256 in the <code className="rounded bg-brand-light px-1 py-0.5 text-xs">X-OmniCard-Signature</code> header.
+            </p>
+            <WebhookForm currentUrl={partner.webhookUrl} />
+            <pre className="mt-4 overflow-x-auto rounded-lg bg-zinc-900 p-3 text-xs text-zinc-100">
+{`{
+  "event": "lead.closed_won",
+  "leadId": "...",
+  "businessName": "...",
+  "dealValue": 250000,
+  "timestamp": "2026-07-10T12:00:00.000Z"
+}`}
+            </pre>
+          </div>
         </CardContent>
       </Card>
     </div>

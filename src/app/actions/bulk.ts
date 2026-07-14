@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { notifyInternalUsers } from "@/lib/notify";
 import { slugify, randomReferralCode } from "@/lib/slug";
 import { pickNextSalesRep } from "@/lib/assignment";
+import { findConflictingLead } from "@/lib/lead-conflict";
 import type { UserRole } from "@/lib/enums";
 
 export type BulkLeadRow = {
@@ -36,14 +37,22 @@ export async function bulkImportLeadsAction(
   }
 
   let created = 0;
+  let conflicted = 0;
   for (const r of valid) {
+    const phone = r.phone.trim();
+    const conflict = await findConflictingLead(phone, session.partnerId);
+    if (conflict) {
+      conflicted += 1;
+      continue;
+    }
+
     const assignedToId = await pickNextSalesRep();
     await db.lead.create({
       data: {
         partnerId: session.partnerId!,
         businessName: r.businessName.trim(),
         contactName: r.contactName.trim(),
-        phone: r.phone.trim(),
+        phone,
         email: r.email.trim(),
         dealValue: r.dealValue && r.dealValue > 0 ? Math.round(r.dealValue) : 0,
         source: "BULK_UPLOAD",
@@ -54,17 +63,25 @@ export async function bulkImportLeadsAction(
     created += 1;
   }
 
-  await notifyInternalUsers(["ADMIN", "MARKETING_OPS"], {
-    type: "BULK_LEADS_UPLOADED",
-    title: `${created} client leads bulk-uploaded`,
-    body: "New leads are available for masked campaign targeting.",
-    href: "/admin/leads",
-  });
+  if (created > 0) {
+    await notifyInternalUsers(["ADMIN", "MARKETING_OPS"], {
+      type: "BULK_LEADS_UPLOADED",
+      title: `${created} client leads bulk-uploaded`,
+      body: "New leads are available for masked campaign targeting.",
+      href: "/admin/leads",
+    });
+  }
 
   revalidatePath("/partner/leads");
   revalidatePath("/admin/leads");
 
-  return { ok: true, created, skipped: rows.length - valid.length };
+  const skipped = rows.length - valid.length + conflicted;
+  return {
+    ok: true,
+    created,
+    skipped,
+    error: conflicted > 0 ? `${conflicted} row(s) skipped — already an active lead with another partner.` : undefined,
+  };
 }
 
 export type BulkPartnerRow = {

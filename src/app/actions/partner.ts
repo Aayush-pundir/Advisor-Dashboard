@@ -11,6 +11,7 @@ import { notifyPartnerUsers, notifyInternalUsers } from "@/lib/notify";
 import { canManagePartners, ForbiddenError } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { pickNextSalesRep } from "@/lib/assignment";
+import { findConflictingLead } from "@/lib/lead-conflict";
 
 async function requirePartnerManager() {
   const user = await getAuthedUser();
@@ -166,6 +167,11 @@ export async function captureLeadAction(formData: FormData) {
   const source = String(formData.get("source") ?? "MICROSITE");
 
   if (!partnerId || !businessName || !contactName || !phone) {
+    return;
+  }
+
+  const conflict = await findConflictingLead(phone, partnerId);
+  if (conflict) {
     return;
   }
 

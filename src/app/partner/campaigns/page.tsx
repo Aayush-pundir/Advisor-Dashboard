@@ -26,7 +26,7 @@ export default async function PartnerCampaignsPage() {
       <h1 className="text-2xl font-bold">Campaigns</h1>
       <p className="mt-1 text-muted">
         OmniCard drafts every campaign to your client base — you approve in
-        one click (Step 3.11 / Step 6).
+        one click.
       </p>
 
       <div className="mt-6 grid gap-4">

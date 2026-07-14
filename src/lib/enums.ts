@@ -215,32 +215,12 @@ export function ltvCommissionPerClient(acv: number, annualChurn: number) {
  * version they accepted (Partner.mouVersion). */
 export const CURRENT_MOU_VERSION = "v1";
 
-/** Deal registration — channel-conflict protection window, in days. */
-export const DEAL_PROTECTION_DAYS = 90;
-
-export const DEAL_STATUSES = ["PENDING", "APPROVED", "REJECTED", "CONVERTED", "EXPIRED"] as const;
-export type DealStatus = (typeof DEAL_STATUSES)[number];
-
-export const DEAL_STATUS_LABELS: Record<DealStatus, string> = {
-  PENDING: "Pending Review",
-  APPROVED: "Approved & Protected",
-  REJECTED: "Rejected",
-  CONVERTED: "Converted",
-  EXPIRED: "Expired",
-};
-
-export const MDF_STATUSES = ["PENDING", "APPROVED", "REJECTED", "PAID"] as const;
-export type MdfStatus = (typeof MDF_STATUSES)[number];
-
-export const MDF_STATUS_LABELS: Record<MdfStatus, string> = {
-  PENDING: "Pending Review",
-  APPROVED: "Approved",
-  REJECTED: "Rejected",
-  PAID: "Paid Out",
-};
-
-export const RISK_LEVELS = ["LOW", "MEDIUM", "HIGH"] as const;
-export type RiskLevel = (typeof RISK_LEVELS)[number];
+/** Channel-conflict protection window (in days) — any lead phone number
+ * already captured by another partner within this window is flagged as a
+ * conflict instead of silently double-attributed. Applied automatically to
+ * every lead a partner submits (one-by-one, bulk, or public capture) rather
+ * than requiring a separate pre-registration step. */
+export const LEAD_CONFLICT_PROTECTION_DAYS = 90;
 
 /** Certification step-up track (Partner.certLevel) — separate from the
  * one-time onboarding certification (Partner.stage === CERTIFIED). Partners

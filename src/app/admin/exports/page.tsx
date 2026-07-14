@@ -10,7 +10,7 @@ const EXPORTS = [
   {
     label: "KPI Snapshots",
     href: "/admin/kpi-export",
-    description: "Weekly program KPI history (Step 9 cadence).",
+    description: "Weekly program KPI history.",
   },
   {
     label: "Leads",

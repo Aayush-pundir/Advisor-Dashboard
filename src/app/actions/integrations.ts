@@ -16,7 +16,7 @@ export async function generateApiKeyAction(): Promise<{ ok: boolean; apiKey?: st
   const apiKey = `omc_${randomBytes(24).toString("hex")}`;
   await db.partner.update({ where: { id: session.partnerId }, data: { apiKey } });
 
-  revalidatePath("/partner/integrations");
+  revalidatePath("/partner/settings");
   return { ok: true, apiKey };
 }
 
@@ -25,7 +25,7 @@ export async function revokeApiKeyAction() {
   if (!session?.partnerId) return;
 
   await db.partner.update({ where: { id: session.partnerId }, data: { apiKey: null } });
-  revalidatePath("/partner/integrations");
+  revalidatePath("/partner/settings");
 }
 
 export async function setWebhookUrlAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
@@ -45,7 +45,7 @@ export async function setWebhookUrlAction(formData: FormData): Promise<{ ok: boo
     data: { webhookUrl: webhookUrl || null, webhookSecret: webhookUrl ? webhookSecret : partner.webhookSecret },
   });
 
-  revalidatePath("/partner/integrations");
+  revalidatePath("/partner/settings");
   return { ok: true };
 }
 

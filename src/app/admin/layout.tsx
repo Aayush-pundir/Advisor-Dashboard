@@ -14,19 +14,14 @@ export default async function AdminLayout({
   if (!user) redirect("/login");
   if (user.mustChangePassword) redirect("/change-password");
 
-  const [unreadCount, pendingAccept, pendingCountersign, awaitingDemo, pendingDeals, pendingMdf, openTickets, highRiskClients] =
-    await Promise.all([
-      db.notification.count({ where: { userId: user.id, readAt: null } }),
-      db.partner.count({ where: { stage: "LEAD" } }),
-      db.partner.count({ where: { stage: "MEETING_SCHEDULED" } }),
-      db.partner.count({ where: { stage: "ONBOARDING", demoScheduledAt: null } }),
-      db.dealRegistration.count({ where: { status: "PENDING" } }),
-      db.mdfRequest.count({ where: { status: "PENDING" } }),
-      db.supportTicket.count({ where: { status: { in: ["OPEN", "ESCALATED"] } } }),
-      db.lead.count({ where: { riskLevel: "HIGH", stage: "CLOSED_WON" } }),
-    ]);
-  const queueCount =
-    pendingAccept + pendingCountersign + awaitingDemo + pendingDeals + pendingMdf + openTickets + highRiskClients;
+  const [unreadCount, pendingAccept, pendingCountersign, awaitingDemo, openTickets] = await Promise.all([
+    db.notification.count({ where: { userId: user.id, readAt: null } }),
+    db.partner.count({ where: { stage: "LEAD" } }),
+    db.partner.count({ where: { stage: "MEETING_SCHEDULED" } }),
+    db.partner.count({ where: { stage: "ONBOARDING", demoScheduledAt: null } }),
+    db.supportTicket.count({ where: { status: { in: ["OPEN", "ESCALATED"] } } }),
+  ]);
+  const queueCount = pendingAccept + pendingCountersign + awaitingDemo + openTickets;
 
   return (
     <div className="flex min-h-screen">

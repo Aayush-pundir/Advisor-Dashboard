@@ -166,8 +166,6 @@ model Partner {
   activities            ActivityEvent[]
   referralBonusesEarned ReferralBonus[]         @relation("ReferrerBonuses")
   referralBonusesFor    ReferralBonus[]         @relation("ReferredBonuses")
-  dealRegistrations     DealRegistration[]
-  mdfRequests           MdfRequest[]
   supportTickets        SupportTicket[]
   certifications        CertificationProgress[]
   marketingContacts     MarketingContact[]
@@ -357,50 +355,6 @@ model KpiSnapshot {
   dormancyPct                 Float // target < 25
   referredSharePct            Float // target >= 20
   createdAt                   DateTime @default(now())
-}
-
-// ---------------------------------------------------------------------------
-// Deal registration — channel-conflict protection: a partner locks in
-// attribution on a prospect before referring, for a fixed protection window.
-// ---------------------------------------------------------------------------
-
-model DealRegistration {
-  id           String    @id @default(cuid())
-  partnerId    String
-  partner      Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  businessName String
-  contactName  String
-  phone        String
-  email        String?
-  city         String
-  status       String    @default("PENDING") // PENDING | APPROVED | REJECTED | CONVERTED | EXPIRED
-  notes        String?
-  expiresAt    DateTime
-  reviewedAt   DateTime?
-  createdAt    DateTime  @default(now())
-
-  @@index([partnerId])
-  @@index([status])
-}
-
-// ---------------------------------------------------------------------------
-// MDF — Market Development Funds: partners request co-marketing budget.
-// ---------------------------------------------------------------------------
-
-model MdfRequest {
-  id              String    @id @default(cuid())
-  partnerId       String
-  partner         Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  title           String
-  description     String?
-  requestedAmount Int
-  approvedAmount  Int?
-  status          String    @default("PENDING") // PENDING | APPROVED | REJECTED | PAID
-  reviewedAt      DateTime?
-  createdAt       DateTime  @default(now())
-
-  @@index([partnerId])
-  @@index([status])
 }
 
 // ---------------------------------------------------------------------------

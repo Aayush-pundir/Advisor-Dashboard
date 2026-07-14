@@ -31,7 +31,7 @@ export default async function PartnerLayout({
 
   return (
     <div className="flex min-h-screen">
-      <PartnerSidebar firmName={partner.firmName} unreadCount={unreadCount} isCertified={isCertified} />
+      <PartnerSidebar firmName={partner.firmName} isCertified={isCertified} />
       <div className="flex flex-1 flex-col">
         <TopBar unreadCount={unreadCount} />
         <main className="flex-1 overflow-y-auto bg-background p-8">

@@ -50,7 +50,7 @@ export default async function AdminCommissionsPage() {
           <h1 className="text-2xl font-bold">Commission Ledger</h1>
           <p className="mt-1 text-muted">
             15% Year-1 + 5% trailing advisory fee, auto-credited to CA wallets
-            on client go-live (Step 1.1 / Step 6.6).
+            on client go-live.
           </p>
         </div>
         <CsvExportButton href="/admin/commissions/export" />

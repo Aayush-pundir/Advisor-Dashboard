@@ -24,9 +24,9 @@ export default async function DirectoryPage() {
       <div className="mx-auto w-full max-w-6xl px-4 py-14">
         <h1 className="text-2xl font-bold">Certified Advisor Directory</h1>
         <p className="mt-2 max-w-2xl text-muted">
-          Step 2.7 — inbound businesses are routed to these certified
-          Implementation Advisors. Every advisor here has completed
-          certification and can be recommended for OmniCard implementation.
+          Inbound businesses are routed to these certified Implementation
+          Advisors. Every advisor here has completed certification and can
+          be recommended for OmniCard implementation.
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

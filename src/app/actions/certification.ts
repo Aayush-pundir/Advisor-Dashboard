@@ -37,11 +37,11 @@ export async function completeCertModuleAction(moduleKey: CertModuleKey) {
       await notifyPartnerUsers(session.partnerId, {
         type: "CERT_LEVEL_UP",
         title: `You're now ${CERT_LEVEL_LABELS[newLevel]}!`,
-        href: "/partner/certification",
+        href: "/partner/achievements?tab=certification",
       });
     }
   }
 
-  revalidatePath("/partner/certification");
+  revalidatePath("/partner/achievements");
   revalidatePath("/admin/partners");
 }

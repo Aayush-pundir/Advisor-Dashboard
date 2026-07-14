@@ -9,6 +9,8 @@ import { getAuthedUser } from "@/lib/auth";
 import { canManageLeads } from "@/lib/permissions";
 import { RevealPii } from "@/components/admin/reveal-pii";
 import { ReassignLeadSelect } from "@/components/admin/reassign-lead-select";
+import { LEAD_CONFLICT_PROTECTION_DAYS } from "@/lib/enums";
+import { conflictProtectionCutoff } from "@/lib/lead-conflict";
 
 export default async function AdminLeadsPage() {
   const [leads, actor, reps] = await Promise.all([
@@ -21,13 +23,23 @@ export default async function AdminLeadsPage() {
   ]);
   const canManage = actor ? canManageLeads(actor.role as UserRole) : false;
 
+  const protectionCutoff = conflictProtectionCutoff();
+  const phonePartners = new Map<string, Set<string>>();
+  for (const l of leads) {
+    if (l.stage === "CLOSED_LOST" || l.createdAt < protectionCutoff) continue;
+    const set = phonePartners.get(l.phone) ?? new Set<string>();
+    set.add(l.partnerId);
+    phonePartners.set(l.phone, set);
+  }
+
   return (
     <div>
-      <h1 className="text-2xl font-bold">Lead-to-Revenue Machine</h1>
+      <h1 className="text-2xl font-bold">Lead-to-Revenue</h1>
       <p className="mt-1 text-muted">
-        Every client lead, across every CA — capture, qualify, contact,
-        demo, close (Step 6). SLA: same-day qualify, 24-hr contact, 7-day
-        demo+proposal.
+        Every client lead, across every advisor — capture, qualify, contact,
+        demo, close. Leads referred to the same contact by more than one
+        advisor within {LEAD_CONFLICT_PROTECTION_DAYS} days are flagged as a
+        channel conflict automatically.
       </p>
 
       <Card className="mt-6 overflow-x-auto">
@@ -45,11 +57,18 @@ export default async function AdminLeadsPage() {
             </tr>
           </thead>
           <tbody>
-            {leads.map((l) => (
+            {leads.map((l) => {
+              const hasConflict = (phonePartners.get(l.phone)?.size ?? 0) > 1;
+              return (
               <tr key={l.id} className="border-b border-border last:border-0">
                 <td className="p-3">
                   <p className="font-medium">{l.businessName}</p>
                   <p className="text-xs text-muted">{l.contactName}</p>
+                  {hasConflict && (
+                    <Badge variant="danger" className="mt-1">
+                      Channel conflict
+                    </Badge>
+                  )}
                 </td>
                 <td className="p-3">
                   {canManage ? (
@@ -89,7 +108,8 @@ export default async function AdminLeadsPage() {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
         {leads.length === 0 && (
