@@ -15,9 +15,6 @@ export function SiteNavbar() {
           <Link href="/#calculator" className="hover:text-foreground">
             Earnings calculator
           </Link>
-          <Link href="/directory" className="hover:text-foreground">
-            Advisor Directory
-          </Link>
         </nav>
         <div className="flex items-center gap-2">
           <Link href="/login">

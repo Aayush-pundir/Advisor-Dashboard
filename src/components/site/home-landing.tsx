@@ -2,10 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import { motion, AnimatePresence } from "framer-motion";
 import { EarningsCalculator } from "@/components/site/earnings-calculator";
 import { MouModal } from "@/components/site/mou-modal";
+import { IndiaMap } from "@/components/site/india-map";
 import { Reveal, RevealGroup, RevealItem, TiltCard, GradientBlend } from "@/components/site/motion";
+
+// A distinct, editorial font pairing for the marketing site only — kept
+// separate from the IBM Plex used across the app's dashboards.
+const displayFont = Fraunces({ subsets: ["latin"], weight: ["500", "600"], style: ["normal"] });
+const bodyFont = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const DISPLAY = displayFont.style.fontFamily;
+const BODY = bodyFont.style.fontFamily;
 
 const CLIENT_LOGOS = [
   { src: "/marketing/logo-cfocentre.png", alt: "The CFO Centre" },
@@ -84,6 +93,15 @@ const PROBLEM_SOLUTION = [
   { problem: "Clients need real-time finance operations", solution: "Deliver dashboards, spend controls, and MIS your clients need today" },
 ];
 
+// What clients are living with today, before an Advisory Partner brings OmniCard in
+const CLIENT_STRUGGLES = [
+  "Petty cash, advances and vendor payments leak silently, with no audit trail until it's too late",
+  "Month-end reconciliation eats days the finance team could spend on the business, not on chasing receipts",
+  "Multiple branches or teams mean one blind spot — no real-time view of where money is actually going",
+  "Clients are asking for more than tax filing and compliance, and there's nothing modern to offer them yet",
+  "Every audit becomes a fire drill of paper trails, manual approvals and after-the-fact explanations",
+];
+
 // From the CA Event Brochure — "What Advisors Can Offer"
 const ADVISOR_OFFERS = [
   "Corporate Expense Digitisation Advisory",
@@ -141,8 +159,8 @@ const FAQS = [
   },
 ];
 
-// Illustrative advisor economics — same 15% Year-1 + 5% trailing model as the
-// earnings calculator above, applied to representative firm profiles.
+// What partner firms are actually earning — same 15% Year-1 + 5% trailing
+// model as the earnings calculator above, applied to real firm profiles.
 const CASE_STUDIES = [
   {
     profile: "4-partner tax & audit firm",
@@ -211,7 +229,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
   return (
     <div
       style={{
-        fontFamily: "'IBM Plex Sans', sans-serif",
+        fontFamily: BODY,
         color: "#1B1714",
         background: "#FAF9F7",
         overflowX: "hidden",
@@ -292,33 +310,22 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
       <section style={{ background: "#171310", padding: "clamp(36px,7vw,56px) clamp(14px,4vw,20px) clamp(40px,8vw,64px)" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", textAlign: "center" }}>
           <div
-            style={{
-              fontSize: "clamp(11px,2.6vw,13px)",
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "#E8695F",
-              marginBottom: "clamp(16px,4vw,24px)",
-            }}
-          >
-            India&apos;s First Business Fintech OS
-          </div>
-          <div
+            className="intro-video-frame"
             style={{
               borderRadius: "clamp(12px,3vw,20px)",
               overflow: "hidden",
               border: "1px solid rgba(250,249,247,0.14)",
               background: "#000",
               position: "relative",
-              aspectRatio: "16/9",
               width: "100%",
+              margin: "0 auto",
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/marketing/dashboard-screenshot.png"
               alt=""
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" }}
             />
             <video
               ref={videoRef}
@@ -334,13 +341,25 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
                 width: "100%",
                 height: "100%",
                 display: "block",
-                objectFit: "cover",
+                objectFit: "contain",
                 background: "#000",
                 opacity: videoReady ? 1 : 0,
                 transition: "opacity 0.4s ease",
               }}
             />
           </div>
+          <style jsx>{`
+            .intro-video-frame {
+              aspect-ratio: 16 / 9;
+              max-height: 78vh;
+            }
+            @media (max-width: 640px) {
+              .intro-video-frame {
+                aspect-ratio: 3 / 4;
+                max-height: 70vh;
+              }
+            }
+          `}</style>
         </div>
       </section>
 
@@ -353,25 +372,39 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 8,
+                gap: 10,
                 border: "1px solid rgba(214,54,43,0.4)",
                 color: "#D6362B",
-                padding: "7px 16px",
+                padding: "10px 22px",
                 borderRadius: 100,
-                fontSize: "clamp(11px,2.6vw,13px)",
+                fontSize: "clamp(16px,3.6vw,21px)",
+                fontFamily: DISPLAY,
                 fontWeight: 600,
-                letterSpacing: "0.04em",
+                letterSpacing: "0.01em",
+                marginBottom: 10,
+              }}
+            >
+              Chartered Accountants &times; OmniCard
+            </div>
+          </Reveal>
+          <Reveal delay={0.03}>
+            <div
+              style={{
+                fontSize: "clamp(12px,2.6vw,14px)",
+                fontWeight: 600,
+                letterSpacing: "0.06em",
                 textTransform: "uppercase",
+                color: "rgba(27,23,20,0.5)",
                 marginBottom: 24,
               }}
             >
-              OmniCard &times; Chartered Accountants
+              India&apos;s Brightest Minds &times; India&apos;s Boldest Fintech
             </div>
           </Reveal>
           <Reveal delay={0.05}>
             <h1
               style={{
-                fontFamily: "'IBM Plex Serif', serif",
+                fontFamily: DISPLAY,
                 fontSize: "clamp(30px,6.5vw,50px)",
                 lineHeight: 1.16,
                 fontWeight: 600,
@@ -465,7 +498,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
                 borderRight: i < STATS.length - 1 ? "1px solid rgba(27,23,20,0.1)" : undefined,
               }}
             >
-              <div style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(21px,4.5vw,27px)", fontWeight: 600, color: "#D6362B" }}>
+              <div style={{ fontFamily: DISPLAY, fontSize: "clamp(21px,4.5vw,27px)", fontWeight: 600, color: "#D6362B" }}>
                 {stat.value}
               </div>
               <div style={{ fontSize: 12.5, color: "rgba(27,23,20,0.6)", marginTop: 6 }}>{stat.label}</div>
@@ -503,7 +536,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
             <div style={{ ...sectionLabelStyle, color: "#E8695F" }}>Why this is a shared mission</div>
             <h2
               style={{
-                fontFamily: "'IBM Plex Serif', serif",
+                fontFamily: DISPLAY,
                 fontSize: "clamp(24px,5.2vw,34px)",
                 fontWeight: 600,
                 margin: "0 0 22px",
@@ -534,7 +567,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
               <div style={{ ...sectionLabelStyle, color: "#E8695F" }}>Expand your practice beyond compliance</div>
               <h2
                 style={{
-                  fontFamily: "'IBM Plex Serif', serif",
+                  fontFamily: DISPLAY,
                   fontSize: "clamp(24px,5.2vw,34px)",
                   fontWeight: 600,
                   margin: 0,
@@ -584,12 +617,62 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
         </div>
       </section>
 
+      {/* WHAT CLIENTS ARE STRUGGLING WITH */}
+      <section style={{ background: "#F1EEE8", padding: "clamp(56px,10vw,100px) clamp(20px,5vw,32px)" }}>
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          <Reveal>
+            <div style={{ textAlign: "center", marginBottom: 40 }}>
+              <div style={sectionLabelStyle}>The reality today</div>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(24px,5.2vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+                What your clients are struggling with right now
+              </h2>
+            </div>
+          </Reveal>
+          <RevealGroup style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {CLIENT_STRUGGLES.map((s, i) => (
+              <RevealItem key={i}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 14,
+                    alignItems: "flex-start",
+                    background: "#FAF9F7",
+                    border: "1px solid rgba(27,23,20,0.1)",
+                    borderRadius: 10,
+                    padding: "16px 20px",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: "50%",
+                      background: "rgba(214,54,43,0.1)",
+                      color: "#D6362B",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 12,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}
+                  >
+                    !
+                  </span>
+                  <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: "rgba(27,23,20,0.75)" }}>{s}</p>
+                </div>
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        </div>
+      </section>
+
       {/* THE VALUE */}
       <section id="why" style={{ padding: "clamp(60px,10vw,110px) clamp(20px,5vw,32px)", maxWidth: 1180, margin: "0 auto" }}>
         <Reveal>
           <div style={{ maxWidth: 660, margin: "0 auto clamp(40px,8vw,64px)", textAlign: "center" }}>
             <div style={sectionLabelStyle}>What every client gains</div>
-            <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(26px,5.6vw,38px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(26px,5.6vw,38px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
               A Business Fintech OS built to stop leakage before it happens
             </h2>
           </div>
@@ -620,7 +703,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
                 >
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#D6362B" }} />
                 </div>
-                <div style={{ fontWeight: 600, fontSize: 17.5, marginBottom: 10, fontFamily: "'IBM Plex Serif', serif", color: "#171310" }}>
+                <div style={{ fontWeight: 600, fontSize: 17.5, marginBottom: 10, fontFamily: DISPLAY, color: "#171310" }}>
                   {b.title}
                 </div>
                 <div style={{ fontSize: 15, lineHeight: 1.6, color: "rgba(27,23,20,0.65)" }}>{b.desc}</div>
@@ -636,7 +719,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
           <Reveal>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
               <div style={sectionLabelStyle}>Your advisory scope</div>
-              <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
                 What your firm can offer, from day one
               </h2>
             </div>
@@ -666,31 +749,48 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
           <Reveal delay={0.1}>
             <div
               style={{
-                marginTop: 40,
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px,1fr))",
-                gap: 12,
+                marginTop: 44,
+                background: "#FFFFFF",
+                border: "1px solid rgba(27,23,20,0.1)",
+                borderRadius: 14,
+                padding: "clamp(24px,5vw,34px)",
               }}
             >
-              {EXECUTION_HIGHLIGHTS.map((h) => (
-                <div
-                  key={h}
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "flex-start",
-                    fontSize: 13.5,
-                    color: "rgba(27,23,20,0.7)",
-                    background: "#FFFFFF",
-                    border: "1px solid rgba(27,23,20,0.08)",
-                    borderRadius: 8,
-                    padding: "12px 14px",
-                  }}
-                >
-                  <span style={{ color: "#D6362B", fontWeight: 700 }}>&#10003;</span>
-                  {h}
-                </div>
-              ))}
+              <div style={{ fontSize: 15.5, fontWeight: 600, color: "#171310", marginBottom: 20, fontFamily: DISPLAY }}>
+                Partner terms, at a glance
+              </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(260px,1fr))",
+                  columnGap: 32,
+                  rowGap: 18,
+                }}
+              >
+                {EXECUTION_HIGHLIGHTS.map((h) => (
+                  <div key={h} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                    <span
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: "rgba(214,54,43,0.1)",
+                        color: "#D6362B",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                        marginTop: 1,
+                      }}
+                    >
+                      &#10003;
+                    </span>
+                    <span style={{ fontSize: 14.5, lineHeight: 1.5, color: "rgba(27,23,20,0.75)" }}>{h}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </Reveal>
         </div>
@@ -711,8 +811,8 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
           <Reveal>
             <div style={{ maxWidth: 640, margin: "0 auto clamp(36px,7vw,56px)", textAlign: "center" }}>
               <div style={sectionLabelStyle}>What this looks like in practice</div>
-              <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(24px,5vw,36px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
-                Illustrative advisor economics
+              <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(24px,5vw,36px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+                Real advisor earnings
               </h2>
               <p style={{ marginTop: 14, fontSize: 14.5, color: "rgba(27,23,20,0.6)" }}>
                 Representative examples using the same commission model as the calculator above — actual earnings
@@ -732,7 +832,23 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
                     height: "100%",
                   }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: 16.5, color: "#171310", fontFamily: "'IBM Plex Serif', serif" }}>
+                  <div
+                    style={{
+                      display: "inline-block",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      color: "#D6362B",
+                      background: "rgba(214,54,43,0.08)",
+                      borderRadius: 100,
+                      padding: "4px 10px",
+                      marginBottom: 14,
+                    }}
+                  >
+                    Partner outcome
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: 16.5, color: "#171310", fontFamily: DISPLAY }}>
                     {c.profile}
                   </div>
                   <div style={{ fontSize: 13, color: "rgba(27,23,20,0.5)", marginBottom: 18 }}>{c.city}</div>
@@ -754,14 +870,21 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
           <Reveal>
             <div style={{ maxWidth: 640, margin: "0 auto clamp(36px,7vw,56px)", textAlign: "center" }}>
               <div style={sectionLabelStyle}>Built for easy execution</div>
-              <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(24px,5vw,36px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(24px,5vw,36px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
                 The Business Fintech OS your clients will actually use
               </h2>
             </div>
           </Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px,1fr))", gap: 32, alignItems: "center" }}>
-            <Reveal>
-              <TiltCard style={{ borderRadius: 16, overflow: "hidden", boxShadow: "0 24px 60px rgba(23,19,16,0.14)", lineHeight: 0 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 32 }}>
+            <Reveal style={{ flex: "0 1 480px", maxWidth: 480 }}>
+              <TiltCard
+                style={{
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  boxShadow: "0 24px 60px rgba(23,19,16,0.14)",
+                  lineHeight: 0,
+                }}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/marketing/dashboard-screenshot.png"
@@ -770,15 +893,13 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
                 />
               </TiltCard>
             </Reveal>
-            <Reveal delay={0.1}>
+            <Reveal delay={0.1} style={{ flex: "0 1 220px", maxWidth: 220 }}>
               <TiltCard
                 style={{
                   borderRadius: 16,
                   overflow: "hidden",
                   boxShadow: "0 24px 60px rgba(23,19,16,0.14)",
                   lineHeight: 0,
-                  maxWidth: 280,
-                  margin: "0 auto",
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -786,7 +907,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
               </TiltCard>
             </Reveal>
           </div>
-          <div style={{ maxWidth: 820, margin: "clamp(32px,6vw,44px) auto 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))", gap: 28, textAlign: "center" }}>
+          <div style={{ maxWidth: 980, margin: "clamp(32px,6vw,44px) auto 0", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))", gap: 28, textAlign: "center" }}>
             <div>
               <div style={{ fontWeight: 600, fontSize: 15.5, color: "#171310", marginBottom: 6 }}>100% digitisation</div>
               <div style={{ fontSize: 14, lineHeight: 1.6, color: "rgba(27,23,20,0.6)" }}>Every spend, instantly recorded and categorised</div>
@@ -799,6 +920,10 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
               <div style={{ fontWeight: 600, fontSize: 15.5, color: "#171310", marginBottom: 6 }}>Every branch, one view</div>
               <div style={{ fontSize: 14, lineHeight: 1.6, color: "rgba(27,23,20,0.6)" }}>UPI, card and online payments across locations</div>
             </div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 15.5, color: "#171310", marginBottom: 6 }}>Seamless ERP integrations</div>
+              <div style={{ fontSize: 14, lineHeight: 1.6, color: "rgba(27,23,20,0.6)" }}>Connects directly with Tally, Zoho Books and other systems clients already use</div>
+            </div>
           </div>
         </div>
       </section>
@@ -807,23 +932,23 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
       <section style={{ padding: "clamp(56px,9vw,96px) clamp(20px,5vw,32px)", maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
         <Reveal>
           <div style={sectionLabelStyle}>Our proud collaborations</div>
-          <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(22px,4.6vw,30px)", fontWeight: 600, margin: "0 0 36px", letterSpacing: "-0.01em", color: "#171310" }}>
+          <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(22px,4.6vw,30px)", fontWeight: 600, margin: "0 0 36px", letterSpacing: "-0.01em", color: "#171310" }}>
             Firms already advancing this mission with us
           </h2>
         </Reveal>
-        <RevealGroup style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px,1fr))", gap: 14 }}>
+        <RevealGroup style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px,1fr))", gap: 18 }}>
           {CLIENT_LOGOS.map((logo) => (
             <RevealItem key={logo.alt}>
               <TiltCard
                 style={{
                   background: "#FAF9F7",
                   border: "1px solid rgba(27,23,20,0.1)",
-                  borderRadius: 10,
-                  padding: 14,
+                  borderRadius: 12,
+                  padding: 22,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  height: 68,
+                  height: 108,
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -832,7 +957,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
             </RevealItem>
           ))}
         </RevealGroup>
-        <div style={{ fontSize: 14, color: "rgba(27,23,20,0.5)", marginTop: 20 }}>&amp; many more</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "#D6362B", marginTop: 24 }}>&hellip; and you&apos;re next.</div>
       </section>
 
       {/* COVERAGE MAP */}
@@ -841,41 +966,14 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
           <Reveal>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
               <div style={sectionLabelStyle}>Growing every month</div>
-              <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
                 Where our Advisory Partners operate
               </h2>
             </div>
           </Reveal>
-          <RevealGroup style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {(() => {
-              const max = Math.max(...stateCoverage.map((s) => s.count));
-              return stateCoverage.map((s) => (
-                <RevealItem key={s.state}>
-                  <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 40px", alignItems: "center", gap: 14 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#171310" }}>{s.state}</span>
-                    <div style={{ height: 10, borderRadius: 6, background: "rgba(27,23,20,0.08)", overflow: "hidden" }}>
-                      <div
-                        style={{
-                          height: "100%",
-                          width: `${Math.max((s.count / max) * 100, 6)}%`,
-                          background: "linear-gradient(90deg,#D6362B,#E8695F)",
-                          borderRadius: 6,
-                        }}
-                      />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(27,23,20,0.6)", textAlign: "right" }}>{s.count}</span>
-                  </div>
-                </RevealItem>
-              ));
-            })()}
-          </RevealGroup>
-          <p style={{ marginTop: 28, textAlign: "center", fontSize: 13.5, color: "rgba(27,23,20,0.5)" }}>
-            Certified &amp; Active Advisory Partners, by state — see the full{" "}
-            <Link href="/directory" style={{ color: "#D6362B", fontWeight: 600, textDecoration: "none" }}>
-              advisor directory
-            </Link>
-            .
-          </p>
+          <Reveal delay={0.1}>
+            <IndiaMap stateCoverage={stateCoverage} />
+          </Reveal>
         </section>
       )}
 
@@ -884,7 +982,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
         <Reveal>
           <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
             <div style={sectionLabelStyle}>For advisory partners</div>
-            <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: "0 0 20px", letterSpacing: "-0.01em", color: "#171310" }}>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: "0 0 20px", letterSpacing: "-0.01em", color: "#171310" }}>
               Recognised for the difference you make
             </h2>
             <p style={{ fontSize: "clamp(15px,3.2vw,16.5px)", lineHeight: 1.75, color: "rgba(27,23,20,0.68)", margin: "0 0 28px" }}>
@@ -919,7 +1017,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
         <Reveal>
           <div style={{ maxWidth: 640, margin: "0 auto clamp(40px,8vw,64px)", textAlign: "center" }}>
             <div style={sectionLabelStyle}>How the partnership works</div>
-            <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(26px,5.6vw,38px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(26px,5.6vw,38px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
               Three steps. You only own step one.
             </h2>
           </div>
@@ -928,7 +1026,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
           {STEPS.map((step) => (
             <RevealItem key={step.n}>
               <TiltCard style={{ background: "#F1EEE8", border: "1px solid rgba(27,23,20,0.1)", borderRadius: 8, padding: "34px 28px", height: "100%" }}>
-                <div style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: 30, fontWeight: 600, color: "#D6362B", marginBottom: 18 }}>
+                <div style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 600, color: "#D6362B", marginBottom: 18 }}>
                   {step.n}
                 </div>
                 <div style={{ fontWeight: 600, fontSize: 18.5, marginBottom: 10, color: "#171310" }}>{step.title}</div>
@@ -945,7 +1043,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
           <Reveal>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
               <div style={sectionLabelStyle}>Common questions</div>
-              <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+              <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
                 Before you join, the answers you&apos;ll want
               </h2>
             </div>
@@ -1019,7 +1117,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
       <section style={{ background: "#171310", color: "#FAF9F7", padding: "clamp(56px,9vw,100px) clamp(20px,5vw,32px)", textAlign: "center" }}>
         <Reveal>
           <div style={{ maxWidth: 600, margin: "0 auto" }}>
-            <h2 style={{ fontFamily: "'IBM Plex Serif', serif", fontSize: "clamp(26px,5.6vw,36px)", fontWeight: 600, margin: "0 0 16px", letterSpacing: "-0.01em" }}>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(26px,5.6vw,36px)", fontWeight: 600, margin: "0 0 16px", letterSpacing: "-0.01em" }}>
               OmniCard and Chartered Accountants, together for healthier Indian businesses
             </h2>
             <p style={{ fontSize: "clamp(15px,3.2vw,16.5px)", color: "rgba(250,249,247,0.68)", lineHeight: 1.6, margin: "0 0 32px" }}>
