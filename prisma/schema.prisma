@@ -215,6 +215,8 @@ model Lead {
   contactedAt  DateTime?
   demoAt       DateTime?
   closedAt     DateTime?
+  lossReason   String? // required when stage=CLOSED_LOST
+  score        Int          @default(0) // 0-100, computed lead-scoring engine
   commissions  Commission[]
   createdAt    DateTime     @default(now())
 
@@ -378,6 +380,42 @@ model SupportTicket {
   @@index([userId])
   @@index([partnerId])
   @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Notes & activity timeline — freeform notes and logged calls/tasks/meetings,
+// threaded onto any Lead or Partner record. Polymorphic via
+// relatedToType/relatedToId rather than a relation, since it spans models.
+// ---------------------------------------------------------------------------
+
+model Note {
+  id            String   @id @default(cuid())
+  relatedToType String // "LEAD" | "PARTNER"
+  relatedToId   String
+  body          String
+  authorId      String?
+  authorName    String
+  pinned        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([relatedToType, relatedToId])
+}
+
+model RecordActivity {
+  id            String    @id @default(cuid())
+  relatedToType String // "LEAD" | "PARTNER"
+  relatedToId   String
+  type          String // TASK | CALL | MEETING
+  subject       String
+  notes         String?
+  dueDate       DateTime?
+  completedAt   DateTime?
+  status        String    @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED
+  createdById   String?
+  createdByName String
+  createdAt     DateTime  @default(now())
+
+  @@index([relatedToType, relatedToId])
 }
 
 // ---------------------------------------------------------------------------

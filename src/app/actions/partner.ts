@@ -12,6 +12,7 @@ import { canManagePartners, ForbiddenError } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { pickNextSalesRep } from "@/lib/assignment";
 import { findConflictingLead } from "@/lib/lead-conflict";
+import { computeLeadScore } from "@/lib/lead-scoring";
 
 async function requirePartnerManager() {
   const user = await getAuthedUser();
@@ -176,6 +177,7 @@ export async function captureLeadAction(formData: FormData) {
   }
 
   const assignedToId = await pickNextSalesRep();
+  const createdAt = new Date();
 
   await db.lead.create({
     data: {
@@ -187,6 +189,8 @@ export async function captureLeadAction(formData: FormData) {
       source,
       stage: "CAPTURED",
       assignedToId,
+      createdAt,
+      score: computeLeadScore({ source, stage: "CAPTURED", dealValue: 0, createdAt, contactedAt: null }),
     },
   });
 
@@ -371,4 +375,89 @@ export async function requestDemoAction() {
 
   revalidatePath("/partner");
   revalidatePath(`/admin/partners/${partner.id}`);
+}
+
+/** Admin: merge a likely-duplicate partner record into the surviving one.
+ * Reparents every related record (users, leads, marketing contacts,
+ * campaigns, commissions, activity, support tickets, notes/activities,
+ * referrals) onto the survivor, then deletes the duplicate. Badges and
+ * certification progress are reparented only where they wouldn't collide
+ * with a unique constraint already satisfied on the survivor. */
+export async function mergePartnersAction(
+  survivorId: string,
+  mergedId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const actor = await requirePartnerManager();
+
+  if (survivorId === mergedId) {
+    return { ok: false, error: "Cannot merge a partner with itself." };
+  }
+
+  const [survivor, merged] = await Promise.all([
+    db.partner.findUnique({ where: { id: survivorId } }),
+    db.partner.findUnique({ where: { id: mergedId } }),
+  ]);
+  if (!survivor || !merged) {
+    return { ok: false, error: "Partner not found." };
+  }
+
+  await db.user.updateMany({ where: { partnerId: mergedId }, data: { partnerId: survivorId } });
+  await db.lead.updateMany({ where: { partnerId: mergedId }, data: { partnerId: survivorId } });
+  await db.marketingContact.updateMany({ where: { partnerId: mergedId }, data: { partnerId: survivorId } });
+  await db.campaign.updateMany({ where: { partnerId: mergedId }, data: { partnerId: survivorId } });
+  await db.commission.updateMany({ where: { partnerId: mergedId }, data: { partnerId: survivorId } });
+  await db.activityEvent.updateMany({ where: { partnerId: mergedId }, data: { partnerId: survivorId } });
+  await db.supportTicket.updateMany({ where: { partnerId: mergedId }, data: { partnerId: survivorId } });
+  await db.note.updateMany({ where: { relatedToType: "PARTNER", relatedToId: mergedId }, data: { relatedToId: survivorId } });
+  await db.recordActivity.updateMany({ where: { relatedToType: "PARTNER", relatedToId: mergedId }, data: { relatedToId: survivorId } });
+
+  const [survivorBadges, mergedBadges] = await Promise.all([
+    db.badge.findMany({ where: { partnerId: survivorId } }),
+    db.badge.findMany({ where: { partnerId: mergedId } }),
+  ]);
+  const survivorBadgeKeys = new Set(survivorBadges.map((b) => `${b.quarter}:${b.tier}`));
+  for (const b of mergedBadges) {
+    if (!survivorBadgeKeys.has(`${b.quarter}:${b.tier}`)) {
+      await db.badge.update({ where: { id: b.id }, data: { partnerId: survivorId } });
+    }
+  }
+
+  const [survivorCerts, mergedCerts] = await Promise.all([
+    db.certificationProgress.findMany({ where: { partnerId: survivorId } }),
+    db.certificationProgress.findMany({ where: { partnerId: mergedId } }),
+  ]);
+  const survivorCertKeys = new Set(survivorCerts.map((c) => c.moduleKey));
+  for (const c of mergedCerts) {
+    if (!survivorCertKeys.has(c.moduleKey)) {
+      await db.certificationProgress.update({ where: { id: c.id }, data: { partnerId: survivorId } });
+    }
+  }
+
+  await db.partner.updateMany({ where: { referredById: mergedId }, data: { referredById: survivorId } });
+  await db.referralBonus.updateMany({ where: { referrerId: mergedId }, data: { referrerId: survivorId } });
+  await db.referralBonus.updateMany({ where: { referredId: mergedId }, data: { referredId: survivorId } });
+  await db.referralBonus.deleteMany({ where: { referrerId: survivorId, referredId: survivorId } });
+  if (survivor.referredById === mergedId) {
+    await db.partner.update({ where: { id: survivorId }, data: { referredById: null } });
+  }
+
+  if (!survivor.icaiNumber && merged.icaiNumber) {
+    await db.partner.update({ where: { id: survivorId }, data: { icaiNumber: merged.icaiNumber } });
+  }
+
+  await db.partner.delete({ where: { id: mergedId } });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "MERGE_PARTNERS",
+    targetType: "Partner",
+    targetId: survivorId,
+    meta: `Merged ${merged.firmName} (${mergedId}) into ${survivor.firmName}`,
+  });
+
+  revalidatePath("/admin/partners");
+  revalidatePath(`/admin/partners/${survivorId}`);
+
+  return { ok: true };
 }

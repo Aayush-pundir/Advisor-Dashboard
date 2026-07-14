@@ -23,8 +23,20 @@ export function LeadStageSelect({
       disabled={isPending}
       onChange={(e) => {
         const stage = e.target.value as LeadStage;
-        startTransition(() => {
-          advanceLeadStageAction(leadId, stage);
+        let lossReason: string | undefined;
+        if (stage === "CLOSED_LOST") {
+          lossReason = window.prompt("Reason for closing this lead as lost:") ?? undefined;
+          if (!lossReason?.trim()) {
+            e.target.value = current;
+            return;
+          }
+        }
+        startTransition(async () => {
+          const result = await advanceLeadStageAction(leadId, stage, lossReason);
+          if (!result.ok) {
+            alert(result.error);
+            e.target.value = current;
+          }
         });
       }}
       className="rounded-lg border border-border bg-transparent px-2 py-1 text-xs outline-none focus:border-brand disabled:opacity-50"

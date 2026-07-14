@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatINR, formatDate, maskPhone, maskEmail } from "@/lib/utils";
@@ -12,12 +13,27 @@ import { ReassignLeadSelect } from "@/components/admin/reassign-lead-select";
 import { LEAD_CONFLICT_PROTECTION_DAYS } from "@/lib/enums";
 import { conflictProtectionCutoff } from "@/lib/lead-conflict";
 import { CsvExportButton } from "@/components/admin/csv-export-button";
+import { cn } from "@/lib/utils";
+import { LeadsKanban } from "@/components/admin/leads-kanban";
 
-export default async function AdminLeadsPage() {
+function scoreVariant(score: number): "success" | "warning" | "neutral" {
+  if (score >= 70) return "success";
+  if (score >= 40) return "warning";
+  return "neutral";
+}
+
+export default async function AdminLeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ sort?: string; view?: string }>;
+}) {
+  const { sort, view } = await searchParams;
+  const activeView = view === "kanban" ? "kanban" : "table";
+
   const [leads, actor, reps] = await Promise.all([
     db.lead.findMany({
       include: { partner: { select: { firmName: true } }, assignedTo: { select: { name: true } } },
-      orderBy: { createdAt: "desc" },
+      orderBy: sort === "score" ? { score: "desc" } : { createdAt: "desc" },
     }),
     getAuthedUser(),
     db.user.findMany({ where: { role: "SALES", active: true }, select: { id: true, name: true } }),
@@ -48,6 +64,49 @@ export default async function AdminLeadsPage() {
         {canManage && <CsvExportButton href="/admin/leads/export" />}
       </div>
 
+      <div className="mt-4 flex items-center justify-between gap-4 border-b border-border">
+        <div className="flex gap-1">
+          <Link
+            href={sort === "score" ? "/admin/leads?sort=score" : "/admin/leads"}
+            className={cn(
+              "border-b-2 px-4 py-2 text-sm font-medium",
+              activeView === "table" ? "border-brand text-brand-dark" : "border-transparent text-muted hover:text-foreground",
+            )}
+          >
+            Table
+          </Link>
+          <Link
+            href={sort === "score" ? "/admin/leads?view=kanban&sort=score" : "/admin/leads?view=kanban"}
+            className={cn(
+              "border-b-2 px-4 py-2 text-sm font-medium",
+              activeView === "kanban" ? "border-brand text-brand-dark" : "border-transparent text-muted hover:text-foreground",
+            )}
+          >
+            Pipeline
+          </Link>
+        </div>
+        {activeView === "table" && (
+          <Link
+            href={sort === "score" ? "/admin/leads" : "/admin/leads?sort=score"}
+            className="pb-2 text-xs text-muted hover:text-brand hover:underline"
+          >
+            {sort === "score" ? "Sort by newest" : "Sort by score"}
+          </Link>
+        )}
+      </div>
+
+      {activeView === "kanban" ? (
+        <LeadsKanban
+          leads={leads.map((l) => ({
+            id: l.id,
+            businessName: l.businessName,
+            contactName: l.contactName,
+            dealValue: l.dealValue,
+            stage: l.stage,
+            partnerFirmName: l.partner.firmName,
+          }))}
+        />
+      ) : (
       <Card className="mt-6 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-muted">
@@ -57,6 +116,7 @@ export default async function AdminLeadsPage() {
               <th className="p-3 font-medium">Referred by</th>
               <th className="p-3 font-medium">Source</th>
               <th className="p-3 font-medium">Value</th>
+              <th className="p-3 font-medium">Score</th>
               <th className="p-3 font-medium">Captured</th>
               <th className="p-3 font-medium">Stage</th>
               <th className="p-3 font-medium">Assigned to</th>
@@ -68,7 +128,9 @@ export default async function AdminLeadsPage() {
               return (
               <tr key={l.id} className="border-b border-border last:border-0">
                 <td className="p-3">
-                  <p className="font-medium">{l.businessName}</p>
+                  <Link href={`/admin/leads/${l.id}`} className="font-medium text-brand-dark hover:underline">
+                    {l.businessName}
+                  </Link>
                   <p className="text-xs text-muted">{l.contactName}</p>
                   {hasConflict && (
                     <Badge variant="danger" className="mt-1">
@@ -93,6 +155,9 @@ export default async function AdminLeadsPage() {
                 <td className="p-3 text-muted">{l.partner.firmName}</td>
                 <td className="p-3 text-muted">{l.source}</td>
                 <td className="p-3">{formatINR(l.dealValue)}</td>
+                <td className="p-3">
+                  <Badge variant={scoreVariant(l.score)}>{l.score}</Badge>
+                </td>
                 <td className="p-3 text-muted">{formatDate(l.createdAt)}</td>
                 <td className="p-3">
                   {canManage ? (
@@ -122,6 +187,7 @@ export default async function AdminLeadsPage() {
           <p className="p-6 text-center text-muted">No leads yet.</p>
         )}
       </Card>
+      )}
     </div>
   );
 }

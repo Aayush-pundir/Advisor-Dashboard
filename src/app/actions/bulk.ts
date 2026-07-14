@@ -9,6 +9,7 @@ import { notifyInternalUsers } from "@/lib/notify";
 import { slugify, randomReferralCode } from "@/lib/slug";
 import { pickNextSalesRep } from "@/lib/assignment";
 import { findConflictingLead } from "@/lib/lead-conflict";
+import { computeLeadScore } from "@/lib/lead-scoring";
 import type { UserRole } from "@/lib/enums";
 
 export type BulkLeadRow = {
@@ -47,6 +48,8 @@ export async function bulkImportLeadsAction(
     }
 
     const assignedToId = await pickNextSalesRep();
+    const dealValue = r.dealValue && r.dealValue > 0 ? Math.round(r.dealValue) : 0;
+    const createdAt = new Date();
     await db.lead.create({
       data: {
         partnerId: session.partnerId!,
@@ -54,10 +57,12 @@ export async function bulkImportLeadsAction(
         contactName: r.contactName.trim(),
         phone,
         email: r.email.trim(),
-        dealValue: r.dealValue && r.dealValue > 0 ? Math.round(r.dealValue) : 0,
+        dealValue,
         source: "BULK_UPLOAD",
         stage: "CAPTURED",
         assignedToId,
+        createdAt,
+        score: computeLeadScore({ source: "BULK_UPLOAD", stage: "CAPTURED", dealValue, createdAt, contactedAt: null }),
       },
     });
     created += 1;

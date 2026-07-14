@@ -13,6 +13,7 @@ import { fireLeadClosedWebhook } from "@/app/actions/integrations";
 import { pickNextSalesRep } from "@/lib/assignment";
 import { notifyInternalUsers } from "@/lib/notify";
 import { findConflictingLead, conflictErrorMessage } from "@/lib/lead-conflict";
+import { computeLeadScore } from "@/lib/lead-scoring";
 
 const TIER_ORDER: Exclude<BadgeTier, "NONE">[] = ["SILVER", "GOLD", "PLATINUM"];
 
@@ -43,6 +44,8 @@ export async function addLeadManuallyAction(
   }
 
   const assignedToId = await pickNextSalesRep();
+  const roundedDealValue = dealValue > 0 ? Math.round(dealValue) : 0;
+  const createdAt = new Date();
 
   await db.lead.create({
     data: {
@@ -51,10 +54,18 @@ export async function addLeadManuallyAction(
       contactName,
       phone,
       email,
-      dealValue: dealValue > 0 ? Math.round(dealValue) : 0,
+      dealValue: roundedDealValue,
       source: "PARTNER_MANUAL",
       stage: "CAPTURED",
       assignedToId,
+      createdAt,
+      score: computeLeadScore({
+        source: "PARTNER_MANUAL",
+        stage: "CAPTURED",
+        dealValue: roundedDealValue,
+        createdAt,
+        contactedAt: null,
+      }),
     },
   });
 
@@ -69,8 +80,14 @@ export async function addLeadManuallyAction(
 }
 
 /** Step 6 — advance a lead through the sales pipeline; closing triggers
- * commissions (Step 6.6 / Step 10) and milestone badge checks (Step 4/8). */
-export async function advanceLeadStageAction(leadId: string, stage: LeadStage) {
+ * commissions (Step 6.6 / Step 10) and milestone badge checks (Step 4/8).
+ * Stage-change validation: closing Won requires a deal value already set;
+ * closing Lost requires a loss reason. */
+export async function advanceLeadStageAction(
+  leadId: string,
+  stage: LeadStage,
+  lossReason?: string,
+): Promise<{ ok: boolean; error?: string }> {
   const actor = await getAuthedUser();
   if (!actor || !canManageLeads(actor.role as UserRole)) {
     throw new ForbiddenError("manage leads");
@@ -78,12 +95,33 @@ export async function advanceLeadStageAction(leadId: string, stage: LeadStage) {
 
   const lead = await db.lead.findUniqueOrThrow({ where: { id: leadId } });
 
-  const data: { stage: LeadStage; contactedAt?: Date; demoAt?: Date; closedAt?: Date } = {
-    stage,
-  };
+  if (stage === "CLOSED_WON" && lead.dealValue <= 0) {
+    return { ok: false, error: "Set a deal value before closing this lead as won." };
+  }
+  if (stage === "CLOSED_LOST" && !lossReason?.trim()) {
+    return { ok: false, error: "A loss reason is required to close this lead as lost." };
+  }
+
+  const data: {
+    stage: LeadStage;
+    contactedAt?: Date;
+    demoAt?: Date;
+    closedAt?: Date;
+    lossReason?: string;
+    score?: number;
+  } = { stage };
   if (stage === "CONTACTED" && !lead.contactedAt) data.contactedAt = new Date();
   if (stage === "DEMO" && !lead.demoAt) data.demoAt = new Date();
   if (stage === "CLOSED_WON") data.closedAt = new Date();
+  if (stage === "CLOSED_LOST") data.lossReason = lossReason!.trim();
+
+  data.score = computeLeadScore({
+    source: lead.source,
+    stage,
+    dealValue: lead.dealValue,
+    createdAt: lead.createdAt,
+    contactedAt: data.contactedAt ?? lead.contactedAt,
+  });
 
   await db.lead.update({ where: { id: leadId }, data });
 
@@ -146,8 +184,11 @@ export async function advanceLeadStageAction(leadId: string, stage: LeadStage) {
   });
 
   revalidatePath("/admin/leads");
+  revalidatePath(`/admin/leads/${leadId}`);
   revalidatePath(`/admin/partners/${lead.partnerId}`);
   revalidatePath("/partner/leads");
+
+  return { ok: true };
 }
 
 /** Admin: manually reassign a lead to a different sales rep, overriding the

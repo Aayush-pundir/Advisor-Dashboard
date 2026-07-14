@@ -6,6 +6,7 @@ import Link from "next/link";
 import { cn, formatINR, formatDate } from "@/lib/utils";
 import { PartnersBulkUploader } from "@/components/admin/partners-bulk-uploader";
 import { CsvExportButton } from "@/components/admin/csv-export-button";
+import { buildDuplicateMap } from "@/lib/duplicate-detection";
 import {
   icpTotal,
   PARTNER_STAGES,
@@ -44,7 +45,7 @@ export default async function AdminPartnersPage({
       },
       orderBy: { createdAt: "desc" },
     }),
-    db.partner.findMany({ select: { stage: true, city: true, state: true } }),
+    db.partner.findMany({ select: { id: true, firmName: true, email: true, phone: true, stage: true, city: true, state: true } }),
   ]);
 
   const cityCounts = new Map<string, number>();
@@ -53,6 +54,8 @@ export default async function AdminPartnersPage({
     const key = `${p.city.toLowerCase()}, ${p.state.toLowerCase()}`;
     cityCounts.set(key, (cityCounts.get(key) ?? 0) + 1);
   }
+
+  const duplicateMap = buildDuplicateMap(allPartners);
 
   return (
     <div>
@@ -180,6 +183,7 @@ export default async function AdminPartnersPage({
               const score = icpTotal(p);
               const cityKey = `${p.city.toLowerCase()}, ${p.state.toLowerCase()}`;
               const hasOverlap = p.stage !== "DORMANT" && (cityCounts.get(cityKey) ?? 0) > 1;
+              const dupes = duplicateMap.get(p.id) ?? [];
               return (
                 <tr key={p.id} className="border-b border-border last:border-0 hover:bg-brand-light/40">
                   <td className="p-3">
@@ -187,6 +191,11 @@ export default async function AdminPartnersPage({
                       {p.firmName}
                     </Link>
                     <p className="text-xs text-muted">{p.contactName}</p>
+                    {dupes.length > 0 && (
+                      <Badge variant="warning" className="mt-1" title={`Possibly the same firm as: ${dupes.map((d) => d.firmName).join(", ")}`}>
+                        Possible duplicate
+                      </Badge>
+                    )}
                   </td>
                   <td className="p-3 text-muted">
                     <p>{p.city}</p>

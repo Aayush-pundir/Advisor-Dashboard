@@ -23,6 +23,10 @@ import { ScheduleDemoForm } from "@/components/admin/schedule-demo-form";
 import { getAuthedUser } from "@/lib/auth";
 import { canManagePartners } from "@/lib/permissions";
 import type { UserRole } from "@/lib/enums";
+import { RecordTimeline } from "@/components/shared/record-timeline";
+import { findPossibleDuplicates } from "@/lib/duplicate-detection";
+import { MergePartnerButton } from "@/components/admin/merge-partner-button";
+import Link from "next/link";
 
 const assetStatusVariant: Record<AssetStatus, "neutral" | "warning" | "success"> = {
   PENDING: "neutral",
@@ -50,8 +54,18 @@ export default async function AdminPartnerDetailPage({
   const actor = await getAuthedUser();
   const canManage = actor ? canManagePartners(actor.role as UserRole) : false;
 
+  const [notes, activities] = await Promise.all([
+    db.note.findMany({ where: { relatedToType: "PARTNER", relatedToId: partner.id }, orderBy: { createdAt: "desc" } }),
+    db.recordActivity.findMany({ where: { relatedToType: "PARTNER", relatedToId: partner.id }, orderBy: { createdAt: "desc" } }),
+  ]);
+
   const score = icpTotal(partner);
   const deliveredAssets = partner.assetKitItems.filter((a) => a.status === "DELIVERED").length;
+
+  const allPartnersForDupeCheck = await db.partner.findMany({
+    select: { id: true, firmName: true, email: true, phone: true },
+  });
+  const possibleDuplicates = findPossibleDuplicates(partner, allPartnersForDupeCheck);
 
   const overlappingPartners =
     partner.stage === "DORMANT"
@@ -84,6 +98,28 @@ export default async function AdminPartnerDetailPage({
             {overlappingPartners.length} other active partner(s) also serve {partner.city}, {partner.state}:{" "}
             {overlappingPartners.map((p) => p.firmName).join(", ")}.
           </p>
+        </Card>
+      )}
+
+      {canManage && possibleDuplicates.length > 0 && (
+        <Card className="border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-medium">Possible duplicate</p>
+          <p className="mt-1">This firm looks similar to an existing partner record:</p>
+          <div className="mt-3 flex flex-col gap-2">
+            {possibleDuplicates.map((d) => (
+              <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/60 p-2">
+                <Link href={`/admin/partners/${d.id}`} className="text-brand-dark hover:underline">
+                  {d.firmName}
+                </Link>
+                <MergePartnerButton
+                  survivorId={partner.id}
+                  survivorFirmName={partner.firmName}
+                  mergedId={d.id}
+                  mergedFirmName={d.firmName}
+                />
+              </div>
+            ))}
+          </div>
         </Card>
       )}
 
@@ -235,6 +271,8 @@ export default async function AdminPartnerDetailPage({
           )}
         </CardContent>
       </Card>
+
+      <RecordTimeline relatedToType="PARTNER" relatedToId={partner.id} notes={notes} activities={activities} />
     </div>
   );
 }
