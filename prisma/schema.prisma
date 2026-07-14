@@ -414,6 +414,7 @@ model RecordActivity {
   createdById   String?
   createdByName String
   createdAt     DateTime  @default(now())
+  escalatedAt   DateTime? // set once an overdue-activity notification has fired, so it isn't re-sent
 
   @@index([relatedToType, relatedToId])
 }

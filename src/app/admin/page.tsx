@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getAdminOverview } from "@/lib/queries/admin";
+import { escalateOverdueActivities } from "@/lib/escalate-activities";
 import { StatTile } from "@/components/ui/stat-tile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,8 @@ import { PARTNER_STAGE_LABELS, LEAD_STAGE_LABELS, type PartnerStage, type LeadSt
 import { CsvExportButton } from "@/components/admin/csv-export-button";
 
 export default async function AdminOverviewPage() {
+  await escalateOverdueActivities();
+
   const {
     totalPartners,
     certifiedOrActive,
@@ -42,6 +45,17 @@ export default async function AdminOverviewPage() {
       include: { user: { select: { name: true } }, partner: { select: { firmName: true } } },
     }),
   ]);
+
+  const hotLeads = await db.lead.findMany({
+    where: {
+      score: { gte: 70 },
+      stage: { notIn: ["CLOSED_WON", "CLOSED_LOST"] },
+      OR: [{ contactedAt: null }, { assignedToId: null }],
+    },
+    orderBy: { score: "desc" },
+    take: 10,
+    include: { partner: { select: { firmName: true } } },
+  });
 
   const queueTotal = pendingAccept.length + pendingCountersign.length + awaitingDemo.length + openTickets.length;
 
@@ -126,6 +140,19 @@ export default async function AdminOverviewPage() {
                 secondary={`${t.user.name}${t.partner ? ` · ${t.partner.firmName}` : ""}`}
                 meta={formatDate(t.createdAt)}
                 badge={t.status === "ESCALATED" ? <Badge variant="danger">Escalated</Badge> : undefined}
+              />
+            ))}
+          </QueueSection>
+
+          <QueueSection title="Hot leads needing attention" emptyText="No high-scoring leads waiting on contact or assignment.">
+            {hotLeads.map((l) => (
+              <QueueRow
+                key={l.id}
+                href={`/admin/leads/${l.id}`}
+                primary={l.businessName}
+                secondary={l.partner.firmName}
+                meta={!l.assignedToId ? "Unassigned" : !l.contactedAt ? "Not yet contacted" : undefined}
+                badge={<Badge variant="success">{l.score}</Badge>}
               />
             ))}
           </QueueSection>

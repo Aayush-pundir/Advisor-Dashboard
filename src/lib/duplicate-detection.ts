@@ -60,3 +60,34 @@ export function buildDuplicateMap(
   }
   return map;
 }
+
+export type LeadDupeCandidate = { id: string; businessName: string; email: string; phone: string };
+
+/** Same check as partner duplicates, applied to client leads — catches the
+ * same client being submitted twice under a slightly different spelling
+ * (detection only; leads aren't merged, since combining their commissions
+ * and stage history safely needs more care than the partner-merge case). */
+export function findPossibleDuplicateLeads(
+  target: LeadDupeCandidate,
+  candidates: LeadDupeCandidate[],
+  threshold = 0.8,
+): LeadDupeCandidate[] {
+  return candidates.filter((c) => {
+    if (c.id === target.id) return false;
+    if (normalize(c.email) === normalize(target.email)) return true;
+    if (normalize(c.phone) === normalize(target.phone)) return true;
+    return similarity(c.businessName, target.businessName) >= threshold;
+  });
+}
+
+export function buildLeadDuplicateMap(
+  leads: LeadDupeCandidate[],
+  threshold = 0.8,
+): Map<string, LeadDupeCandidate[]> {
+  const map = new Map<string, LeadDupeCandidate[]>();
+  for (const l of leads) {
+    const dupes = findPossibleDuplicateLeads(l, leads, threshold);
+    if (dupes.length > 0) map.set(l.id, dupes);
+  }
+  return map;
+}

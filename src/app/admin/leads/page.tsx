@@ -15,6 +15,7 @@ import { conflictProtectionCutoff } from "@/lib/lead-conflict";
 import { CsvExportButton } from "@/components/admin/csv-export-button";
 import { cn } from "@/lib/utils";
 import { LeadsKanban } from "@/components/admin/leads-kanban";
+import { buildLeadDuplicateMap } from "@/lib/duplicate-detection";
 
 function scoreVariant(score: number): "success" | "warning" | "neutral" {
   if (score >= 70) return "success";
@@ -48,6 +49,10 @@ export default async function AdminLeadsPage({
     set.add(l.partnerId);
     phonePartners.set(l.phone, set);
   }
+
+  const duplicateMap = buildLeadDuplicateMap(
+    leads.map((l) => ({ id: l.id, businessName: l.businessName, email: l.email, phone: l.phone })),
+  );
 
   return (
     <div>
@@ -125,6 +130,7 @@ export default async function AdminLeadsPage({
           <tbody>
             {leads.map((l) => {
               const hasConflict = (phonePartners.get(l.phone)?.size ?? 0) > 1;
+              const dupes = duplicateMap.get(l.id) ?? [];
               return (
               <tr key={l.id} className="border-b border-border last:border-0">
                 <td className="p-3">
@@ -135,6 +141,15 @@ export default async function AdminLeadsPage({
                   {hasConflict && (
                     <Badge variant="danger" className="mt-1">
                       Channel conflict
+                    </Badge>
+                  )}
+                  {dupes.length > 0 && (
+                    <Badge
+                      variant="warning"
+                      className="mt-1"
+                      title={`Possibly the same client as: ${dupes.map((d) => d.businessName).join(", ")}`}
+                    >
+                      Possible duplicate
                     </Badge>
                   )}
                 </td>
