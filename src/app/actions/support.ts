@@ -65,19 +65,44 @@ export async function escalateTicketAction(ticketId: string) {
   revalidatePath("/admin/support");
 }
 
-export async function resolveTicketAction(ticketId: string) {
+export async function resolveTicketAction(ticketId: string, formData: FormData) {
   const actor = await getAuthedUser();
   if (!actor) throw new Error("UNAUTHENTICATED");
 
+  const resolution = String(formData.get("resolution") ?? "").trim() || null;
+
   await db.supportTicket.update({
     where: { id: ticketId },
-    data: { status: "RESOLVED", resolvedAt: new Date() },
+    data: { status: "RESOLVED", resolvedAt: new Date(), resolution },
   });
 
   await logAudit({
     actorId: actor.id,
     actorName: actor.name,
     action: "RESOLVE_TICKET",
+    targetType: "SupportTicket",
+    targetId: ticketId,
+    meta: resolution ?? undefined,
+  });
+
+  revalidatePath("/admin/support");
+}
+
+/** Admin/OmniCard: move a ticket to In Progress without escalating or
+ * resolving it — the middle status in the lifecycle. */
+export async function markTicketInProgressAction(ticketId: string) {
+  const actor = await getAuthedUser();
+  if (!actor) throw new Error("UNAUTHENTICATED");
+
+  await db.supportTicket.update({
+    where: { id: ticketId },
+    data: { status: "IN_PROGRESS" },
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "TICKET_IN_PROGRESS",
     targetType: "SupportTicket",
     targetId: ticketId,
   });

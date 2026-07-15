@@ -13,7 +13,6 @@ const links = [
   { href: "/admin/campaigns", label: "Campaigns" },
   { href: "/admin/commissions", label: "Advisory Fees Ledger" },
   { href: "/admin/support", label: "Support Tickets" },
-  { href: "/admin/exports", label: "Export Center" },
 ];
 
 const adminOnlyLinks = [
