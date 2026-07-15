@@ -44,17 +44,18 @@ const STATE_POSITIONS: Record<string, { x: number; y: number }> = {
   Kerala: { x: 130, y: 320 },
 };
 
-// Low-poly India outline (viewBox 0 0 320 400): Kashmir tip, the Punjab/UP
-// bulge, a narrow "chicken's neck" out to an Assam/Arunachal/Manipur
-// north-east arm, the Gujarat/Kutch bulge on the west coast, and an
-// asymmetric Kerala/Tamil Nadu taper to the Kanyakumari tip.
+// Low-poly India outline (viewBox 0 0 320 400): a jagged Kashmir/Himalayan
+// top, a wide Punjab-to-Bengal body, a narrow "chicken's neck" out to a
+// double-lobed Assam/Arunachal + Manipur/Nagaland north-east arm, a
+// pronounced Gujarat/Kutch bulge on the west coast, and an asymmetric
+// Kerala/Tamil Nadu taper to the Kanyakumari tip.
 const INDIA_PATH =
-  "M145,8 L165,22 L155,32 L172,42 L192,36 L210,50 L205,60 L226,58 L246,50 " +
-  "L268,60 L284,54 L300,63 L312,76 L308,96 L290,101 L296,116 L278,121 " +
-  "L260,111 L248,131 L230,126 L238,146 L222,166 L232,181 L222,211 L212,246 " +
-  "L200,276 L188,311 L172,341 L155,366 L138,346 L122,316 L108,286 L98,251 " +
-  "L108,226 L92,206 L100,176 L80,161 L60,151 L48,131 L62,111 L55,91 L70,76 " +
-  "L85,56 L100,36 L118,21 Z";
+  "M150,6 L170,16 L158,26 L178,34 L168,44 L192,30 L215,42 L208,55 L232,50 " +
+  "L250,42 L270,50 L255,62 L278,58 L298,68 L312,80 L318,72 L315,95 L300,105 " +
+  "L312,120 L295,128 L280,118 L265,130 L250,120 L235,132 L240,150 L225,168 " +
+  "L235,185 L222,215 L212,250 L198,282 L185,315 L168,345 L150,368 L132,346 " +
+  "L115,315 L100,290 L112,265 L95,240 L105,205 L85,190 L95,165 L55,158 " +
+  "L40,140 L58,120 L48,100 L65,85 L55,65 L75,50 L90,32 L108,18 Z";
 
 // A fixed low-poly triangle mesh purely for decorative texture, clipped to
 // the outline above — not tied to real geography.
