@@ -1,3 +1,4 @@
+import QRCode from "qrcode";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getPartnerDashboard } from "@/lib/queries/partner";
@@ -9,6 +10,7 @@ import { formatINR } from "@/lib/utils";
 import { LEAD_STAGE_LABELS, type LeadStage } from "@/lib/enums";
 import { OnboardingTimeline } from "@/components/partner/onboarding-timeline";
 import { WhatsNextCard } from "@/components/partner/whats-next-card";
+import { CopyLinkButton } from "@/components/partner/copy-link-button";
 
 export default async function PartnerDashboardPage() {
   const session = await getSession();
@@ -22,6 +24,7 @@ export default async function PartnerDashboardPage() {
   const { partner, pipeline, closedWon, totalEarned, pendingEarnings, clientsThisQuarter, nextTier, cityRank, cityTotal } = data;
 
   const referralLink = `omnicard.in/advisor/${partner.slug}`;
+  const referralQrCode = await QRCode.toDataURL(`https://${referralLink}`);
 
   const openTickets = await db.supportTicket.count({
     where: { userId: session!.userId!, status: { in: ["OPEN", "IN_PROGRESS"] } },
@@ -128,10 +131,31 @@ export default async function PartnerDashboardPage() {
             )}
 
             <div className="mt-5 rounded-lg bg-brand-light p-3">
-              <p className="text-xs font-medium text-brand-dark">
-                Your referral link
-              </p>
-              <p className="mt-1 break-all text-sm">{referralLink}</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium text-brand-dark">
+                    Your live co-landing page
+                  </p>
+                  <p className="mt-1 break-all text-sm">{referralLink}</p>
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={referralQrCode}
+                  alt="QR code linking to your co-landing page"
+                  className="h-16 w-16 shrink-0 rounded border border-border bg-white p-1"
+                />
+              </div>
+              <div className="mt-3 flex items-center gap-4">
+                <a
+                  href={`https://${referralLink}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-semibold text-brand-dark hover:underline"
+                >
+                  View live page &#8599;
+                </a>
+                <CopyLinkButton value={`https://${referralLink}`} />
+              </div>
             </div>
           </CardContent>
         </Card>

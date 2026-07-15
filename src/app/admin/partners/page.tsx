@@ -176,6 +176,7 @@ export default async function AdminPartnersPage({
               <th className="p-3 font-medium">Stage</th>
               <th className="p-3 font-medium">Tier</th>
               <th className="p-3 font-medium">Certification</th>
+              <th className="p-3 font-medium">Live page</th>
             </tr>
           </thead>
           <tbody>
@@ -217,6 +218,20 @@ export default async function AdminPartnersPage({
                   </td>
                   <td className="p-3 text-muted">{p.badgeTier}</td>
                   <td className="p-3 text-muted">{CERT_LEVEL_LABELS[p.certLevel as CertLevel]}</td>
+                  <td className="p-3">
+                    {p.stage === "CERTIFIED" || p.stage === "ACTIVE" ? (
+                      <a
+                        href={`/advisor/${p.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-semibold text-brand-dark hover:underline"
+                      >
+                        View &#8599;
+                      </a>
+                    ) : (
+                      <span className="text-xs text-muted">Not live yet</span>
+                    )}
+                  </td>
                 </tr>
               );
             })}
