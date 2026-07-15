@@ -3,23 +3,27 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StatTile } from "@/components/ui/stat-tile";
+import { FunnelChart } from "@/components/admin/funnel-chart";
 import { formatDate, formatINR } from "@/lib/utils";
 import {
-  icpTotal,
-  ASSET_LABELS,
   PARTNER_STAGE_LABELS,
   CERT_LEVEL_LABELS,
-  type AssetKey,
-  type AssetStatus,
+  LEAD_STAGES,
+  LEAD_STAGE_LABELS,
   type PartnerStage,
   type CertLevel,
+  type LeadStage,
 } from "@/lib/enums";
 import {
-  acceptPartnerLeadAction,
-  countersignMouAction,
-  certifyPartnerAction,
+  completeMouCountersignAction,
+  completeDemoScheduleAction,
+  completeCertificationAction,
+  completeAssetKitDeliveredAction,
+  updatePartnerPayoutAction,
 } from "@/app/actions/partner";
-import { ScheduleDemoForm } from "@/components/admin/schedule-demo-form";
+import { OnboardingStageForm } from "@/components/admin/onboarding-stage-form";
+import { MicrositeToggle } from "@/components/admin/microsite-toggle";
 import { getAuthedUser } from "@/lib/auth";
 import { canManagePartners } from "@/lib/permissions";
 import type { UserRole } from "@/lib/enums";
@@ -28,17 +32,7 @@ import { findPossibleDuplicates } from "@/lib/duplicate-detection";
 import { MergePartnerButton } from "@/components/admin/merge-partner-button";
 import Link from "next/link";
 
-const assetStatusVariant: Record<AssetStatus, "neutral" | "warning" | "success"> = {
-  PENDING: "neutral",
-  IN_PROGRESS: "warning",
-  DELIVERED: "success",
-};
-
-export default async function AdminPartnerDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function AdminPartnerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const partner = await db.partner.findUnique({
     where: { id },
@@ -47,6 +41,7 @@ export default async function AdminPartnerDetailPage({
       leads: { orderBy: { createdAt: "desc" } },
       commissions: true,
       badges: true,
+      campaigns: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!partner) notFound();
@@ -59,8 +54,17 @@ export default async function AdminPartnerDetailPage({
     db.recordActivity.findMany({ where: { relatedToType: "PARTNER", relatedToId: partner.id }, orderBy: { createdAt: "desc" } }),
   ]);
 
-  const score = icpTotal(partner);
   const deliveredAssets = partner.assetKitItems.filter((a) => a.status === "DELIVERED").length;
+  const convertedLeads = partner.leads.filter((l) => l.stage === "CLOSED_WON");
+  const totalRevenue = convertedLeads.reduce((sum, l) => sum + l.dealValue, 0);
+  const totalAdvisoryFees = partner.commissions
+    .filter((c) => c.status === "PAID")
+    .reduce((sum, c) => sum + c.amount, 0);
+
+  const leadFunnel = LEAD_STAGES.map((stage) => ({
+    name: LEAD_STAGE_LABELS[stage as LeadStage],
+    value: partner.leads.filter((l) => l.stage === stage).length,
+  }));
 
   const allPartnersForDupeCheck = await db.partner.findMany({
     select: { id: true, firmName: true, email: true, phone: true },
@@ -78,6 +82,11 @@ export default async function AdminPartnerDetailPage({
         ).filter(
           (p) => p.city.toLowerCase() === partner.city.toLowerCase() && p.state.toLowerCase() === partner.state.toLowerCase(),
         );
+
+  const mouCountersignedDone = !!partner.mouCountersignedAt;
+  const demoScheduledDone = !!partner.demoScheduledAt;
+  const demoAttendedDone = !!partner.demoAttendedAt;
+  const assetKitDeliveredDone = !!partner.assetKitDeliveredAt;
 
   return (
     <div className="flex flex-col gap-8">
@@ -123,120 +132,138 @@ export default async function AdminPartnerDetailPage({
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-5">
-        <Card className="p-4">
-          <p className="text-xs uppercase text-muted">ICP score</p>
-          <p className="mt-1 text-xl font-semibold">{score} / 100</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase text-muted">Asset kit</p>
-          <p className="mt-1 text-xl font-semibold">
-            {deliveredAssets}/{partner.assetKitItems.length}
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase text-muted">Leads</p>
-          <p className="mt-1 text-xl font-semibold">{partner.leads.length}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase text-muted">Commissions</p>
-          <p className="mt-1 text-xl font-semibold">
-            {formatINR(partner.commissions.reduce((s, c) => s + c.amount, 0))}
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs uppercase text-muted">Tier / Certification</p>
-          <p className="mt-1 text-xl font-semibold">{partner.badgeTier}</p>
-          <p className="text-xs text-muted">{CERT_LEVEL_LABELS[partner.certLevel as CertLevel]}</p>
+      <div>
+        <h2 className="text-lg font-semibold">Lead-to-revenue for this partner</h2>
+        <Card className="mt-3">
+          <CardContent>
+            <FunnelChart data={leadFunnel} />
+          </CardContent>
         </Card>
       </div>
 
-      {/* Onboarding journey — Step 1.3-1.4 / Step 4 */}
-      {canManage && partner.stage !== "CERTIFIED" && partner.stage !== "ACTIVE" && (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile label="Asset kits delivered" value={`${deliveredAssets}/${partner.assetKitItems.length}`} />
+        <StatTile label="Marketing campaigns run" value={String(partner.campaigns.length)} />
+        <StatTile label="Total leads provided" value={String(partner.leads.length)} />
+        <StatTile label="Successfully converted leads" value={String(convertedLeads.length)} />
+        <StatTile label="Revenue generated" value={formatINR(totalRevenue)} />
+        <StatTile label="Total advisory fees" value={formatINR(totalAdvisoryFees)} />
+        <StatTile label="Tier" value={partner.badgeTier} />
+        <StatTile label="Certification" value={CERT_LEVEL_LABELS[partner.certLevel as CertLevel]} />
+      </div>
+
+      {canManage && (
         <Card>
           <CardHeader>
             <CardTitle>Onboarding journey</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <ol className="flex flex-col gap-2 text-sm">
-              <li className="flex items-center gap-2">
-                <span className={partner.acceptedAt ? "text-emerald-600" : "text-muted"}>
-                  {partner.acceptedAt ? "✓" : "○"}
-                </span>
-                MOU submitted &amp; accepted{partner.acceptedAt && ` — ${formatDate(partner.acceptedAt)}`}
-              </li>
-              <li className="flex items-center gap-2">
-                <span className={partner.mouCountersignedAt ? "text-emerald-600" : "text-muted"}>
-                  {partner.mouCountersignedAt ? "✓" : "○"}
-                </span>
-                MOU countersigned by OmniCard{partner.mouCountersignedAt && ` — ${formatDate(partner.mouCountersignedAt)}`}
-              </li>
-              <li className="flex items-center gap-2">
-                <span className={partner.demoScheduledAt ? "text-emerald-600" : "text-muted"}>
-                  {partner.demoScheduledAt ? "✓" : "○"}
-                </span>
-                Certification demo scheduled{partner.demoScheduledAt && ` — ${formatDate(partner.demoScheduledAt)}`}
-                {partner.demoRequestedAt && !partner.demoScheduledAt && (
-                  <Badge variant="warning">Partner requested a slot</Badge>
-                )}
-              </li>
-              <li className="flex items-center gap-2">
-                <span className={partner.demoAttendedAt ? "text-emerald-600" : "text-muted"}>
-                  {partner.demoAttendedAt ? "✓" : "○"}
-                </span>
-                Demo attended &amp; certified
-              </li>
-            </ol>
+            <OnboardingStep index={1} label="MOU submitted" done meta={`Auto-recorded from lead receipt on ${formatDate(partner.createdAt)}`} />
 
-            <div className="flex flex-wrap gap-3 border-t border-border pt-4">
-              {partner.stage === "LEAD" && (
-                <form action={acceptPartnerLeadAction.bind(null, partner.id)}>
-                  <Button size="sm" type="submit">
-                    Accept &amp; schedule intro call
-                  </Button>
-                </form>
+            <OnboardingStep
+              index={2}
+              label="MOU countersigned"
+              done={mouCountersignedDone}
+              meta={mouCountersignedDone ? formatDate(partner.mouCountersignedAt!) : undefined}
+              comment={partner.mouCountersignedComment}
+            >
+              {!mouCountersignedDone && (
+                <OnboardingStageForm
+                  action={completeMouCountersignAction.bind(null, partner.id)}
+                  locked={false}
+                  submitLabel="Mark countersigned"
+                />
               )}
-              {partner.stage === "MEETING_SCHEDULED" && (
-                <form action={countersignMouAction.bind(null, partner.id)}>
-                  <Button size="sm" type="submit">
-                    Countersign MOU
-                  </Button>
-                </form>
+            </OnboardingStep>
+
+            <OnboardingStep
+              index={3}
+              label="Certification demo scheduled"
+              done={demoScheduledDone}
+              meta={
+                demoScheduledDone
+                  ? formatDate(partner.demoScheduledAt!)
+                  : partner.demoRequestedAt
+                    ? "Advisor requested a slot"
+                    : undefined
+              }
+              comment={partner.demoScheduledComment}
+            >
+              {!demoScheduledDone && (
+                <OnboardingStageForm
+                  action={completeDemoScheduleAction.bind(null, partner.id)}
+                  locked={!mouCountersignedDone}
+                  submitLabel="Mark scheduled"
+                />
               )}
-              {partner.stage === "ONBOARDING" && <ScheduleDemoForm partnerId={partner.id} />}
-              {partner.stage === "ONBOARDING" && (
-                <form action={certifyPartnerAction.bind(null, partner.id)}>
-                  <Button size="sm" variant="outline" type="submit">
-                    Mark demo attended — Certify + issue asset kit
-                  </Button>
-                </form>
+            </OnboardingStep>
+
+            <OnboardingStep
+              index={4}
+              label="Demo attended & certified"
+              done={demoAttendedDone}
+              meta={demoAttendedDone ? formatDate(partner.demoAttendedAt!) : undefined}
+              comment={partner.demoAttendedComment}
+            >
+              {!demoAttendedDone && (
+                <OnboardingStageForm
+                  action={completeCertificationAction.bind(null, partner.id)}
+                  locked={!demoScheduledDone}
+                  submitLabel="Mark attended & certify"
+                />
               )}
-            </div>
+            </OnboardingStep>
+
+            <OnboardingStep
+              index={5}
+              label="Asset kit delivered"
+              done={assetKitDeliveredDone}
+              meta={assetKitDeliveredDone ? formatDate(partner.assetKitDeliveredAt!) : undefined}
+              comment={partner.assetKitDeliveredComment}
+            >
+              {!assetKitDeliveredDone && (
+                <OnboardingStageForm
+                  action={completeAssetKitDeliveredAction.bind(null, partner.id)}
+                  locked={!demoAttendedDone}
+                  submitLabel="Mark delivered"
+                />
+              )}
+            </OnboardingStep>
           </CardContent>
         </Card>
       )}
 
-      {/* Per-CA checklist — Step 3 */}
       <Card>
         <CardHeader>
-          <CardTitle>Asset kit checklist</CardTitle>
+          <CardTitle>Co-branded marketing campaigns</CardTitle>
         </CardHeader>
-        <CardContent className="divide-y divide-border p-0">
-          {partner.assetKitItems.map((item) => (
-            <div key={item.id} className="flex items-center justify-between px-5 py-3">
-              <div>
-                <p className="text-sm font-medium">{ASSET_LABELS[item.key as AssetKey]}</p>
-                <p className="text-xs text-muted">Owner: {item.owner}</p>
-              </div>
-              <Badge variant={assetStatusVariant[item.status as AssetStatus]}>
-                {item.status.replace("_", " ")}
-              </Badge>
-            </div>
-          ))}
-          {partner.assetKitItems.length === 0 && (
-            <p className="p-6 text-center text-muted">
-              Asset kit generates automatically on certification.
-            </p>
+        <CardContent className="overflow-x-auto p-0">
+          <table className="w-full text-sm">
+            <thead className="border-b border-border text-left text-muted">
+              <tr>
+                <th className="p-3 font-medium">Title</th>
+                <th className="p-3 font-medium">Type</th>
+                <th className="p-3 font-medium">Status</th>
+                <th className="p-3 font-medium">Content approved</th>
+                <th className="p-3 font-medium">Live date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partner.campaigns.map((c) => (
+                <tr key={c.id} className="border-b border-border last:border-0">
+                  <td className="p-3 font-medium">{c.title}</td>
+                  <td className="p-3 text-muted">{c.type}</td>
+                  <td className="p-3">
+                    <Badge variant="neutral">{c.status.replace("_", " ")}</Badge>
+                  </td>
+                  <td className="p-3 text-muted">{c.contentApprovedAt ? formatDate(c.contentApprovedAt) : "—"}</td>
+                  <td className="p-3 text-muted">{c.liveAt ? formatDate(c.liveAt) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {partner.campaigns.length === 0 && (
+            <p className="p-6 text-center text-muted">No campaigns run for this partner yet.</p>
           )}
         </CardContent>
       </Card>
@@ -258,8 +285,14 @@ export default async function AdminPartnerDetailPage({
             <tbody>
               {partner.leads.map((l) => (
                 <tr key={l.id} className="border-b border-border last:border-0">
-                  <td className="p-3">{l.businessName}</td>
-                  <td className="p-3">{l.stage}</td>
+                  <td className="p-3">
+                    <Link href={`/admin/leads/${l.id}`} className="font-medium text-brand-dark hover:underline">
+                      {l.businessName}
+                    </Link>
+                  </td>
+                  <td className="p-3">
+                    <Badge variant="neutral">{LEAD_STAGE_LABELS[l.stage as LeadStage]}</Badge>
+                  </td>
                   <td className="p-3">{formatINR(l.dealValue)}</td>
                   <td className="p-3 text-muted">{formatDate(l.createdAt)}</td>
                 </tr>
@@ -272,7 +305,135 @@ export default async function AdminPartnerDetailPage({
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Co-branded landing page</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            {partner.stage === "CERTIFIED" || partner.stage === "ACTIVE" ? (
+              <a
+                href={`/advisor/${partner.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-semibold text-brand-dark hover:underline"
+              >
+                omnicard.in/advisor/{partner.slug} &#8599;
+              </a>
+            ) : (
+              <p className="text-sm text-muted">Not live yet — certify this partner first.</p>
+            )}
+            <p className="mt-1 text-xs text-muted">Status: {partner.micrositeEnabled ? "Live" : "Stopped"}</p>
+          </div>
+          {canManage && (partner.stage === "CERTIFIED" || partner.stage === "ACTIVE") && (
+            <MicrositeToggle partnerId={partner.id} enabled={partner.micrositeEnabled} />
+          )}
+        </CardContent>
+      </Card>
+
+      {canManage && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Master data</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+            <div className="grid gap-3 text-sm sm:grid-cols-2">
+              <MasterField label="ICAI membership no." value={partner.icaiNumber} />
+              <MasterField label="ICAI verified" value={partner.icaiVerified ? "Yes" : "No"} />
+              <MasterField label="Designation" value={partner.designation} />
+              <MasterField label="Referral code" value={partner.referralCode} />
+              <MasterField label="MOU version" value={partner.mouVersion} />
+              <MasterField label="MSA signed" value={partner.msaSignedAt ? formatDate(partner.msaSignedAt) : null} />
+            </div>
+            <div className="border-t border-border pt-4">
+              <p className="mb-3 text-sm font-semibold">Payout master details</p>
+              <form action={updatePartnerPayoutAction.bind(null, partner.id)} className="grid gap-4 sm:grid-cols-2">
+                <PayoutField label="Bank account name" name="bankAccountName" defaultValue={partner.bankAccountName} />
+                <PayoutField label="Bank account number" name="bankAccountNumber" defaultValue={partner.bankAccountNumber} />
+                <PayoutField label="IFSC" name="bankIfsc" defaultValue={partner.bankIfsc} />
+                <PayoutField label="UPI ID" name="upiId" defaultValue={partner.upiId} />
+                <PayoutField label="PAN" name="pan" defaultValue={partner.pan} />
+                <PayoutField label="GST number" name="gstNumber" defaultValue={partner.gstNumber} />
+                <div className="sm:col-span-2">
+                  <Button type="submit" size="sm">
+                    Save payout details
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <RecordTimeline relatedToType="PARTNER" relatedToId={partner.id} notes={notes} activities={activities} />
     </div>
+  );
+}
+
+function OnboardingStep({
+  index,
+  label,
+  done,
+  meta,
+  comment,
+  children,
+}: {
+  index: number;
+  label: string;
+  done: boolean;
+  meta?: string;
+  comment?: string | null;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-border p-3">
+      <div className="flex items-start gap-3">
+        <span
+          className={
+            done
+              ? "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-xs text-white"
+              : "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border text-xs text-muted"
+          }
+        >
+          {done ? "✓" : index}
+        </span>
+        <div className="flex-1">
+          <p className="text-sm font-medium">{label}</p>
+          {meta && <p className="mt-0.5 text-xs text-muted">{meta}</p>}
+          {comment && <p className="mt-1 text-xs italic text-muted">&ldquo;{comment}&rdquo;</p>}
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MasterField({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div>
+      <p className="text-xs uppercase text-muted">{label}</p>
+      <p className="mt-0.5 font-medium">{value || "—"}</p>
+    </div>
+  );
+}
+
+function PayoutField({
+  label,
+  name,
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string | null;
+}) {
+  return (
+    <label className="text-sm">
+      <span className="font-medium">{label}</span>
+      <input
+        name={name}
+        defaultValue={defaultValue ?? ""}
+        className="mt-1 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand"
+      />
+    </label>
   );
 }

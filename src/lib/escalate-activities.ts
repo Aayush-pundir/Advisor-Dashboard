@@ -19,7 +19,7 @@ export async function escalateOverdueActivities() {
 
   for (const activity of overdue) {
     const href = activity.relatedToType === "LEAD" ? `/admin/leads/${activity.relatedToId}` : `/admin/partners/${activity.relatedToId}`;
-    const roles = activity.relatedToType === "LEAD" ? ["ADMIN", "SALES"] : ["ADMIN", "PARTNER_MANAGER"];
+    const roles = ["ADMIN", "OMNICARD_TEAM"];
 
     await notifyInternalUsers(roles, {
       type: "ACTIVITY_OVERDUE",

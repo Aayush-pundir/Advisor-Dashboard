@@ -355,6 +355,234 @@ export async function scheduleDemoAction(partnerId: string, demoDate: string) {
   revalidatePath("/partner");
 }
 
+function parseStageDate(formData: FormData): Date {
+  const raw = String(formData.get("date") ?? "");
+  return raw ? new Date(raw) : new Date();
+}
+
+function parseComment(formData: FormData): string | null {
+  return String(formData.get("comment") ?? "").trim() || null;
+}
+
+/** Admin: onboarding-journey stage 2 — MOU countersigned. Silently also
+ * accepts the lead first if that hasn't happened yet, since the checklist
+ * only surfaces MOU countersignature as a single hierarchical step. */
+export async function completeMouCountersignAction(partnerId: string, formData: FormData) {
+  const actor = await requirePartnerManager();
+  const date = parseStageDate(formData);
+  const comment = parseComment(formData);
+
+  const existing = await db.partner.findUniqueOrThrow({ where: { id: partnerId } });
+  if (!existing.acceptedAt) {
+    await db.partner.update({
+      where: { id: partnerId },
+      data: { acceptedAt: date, acceptedComment: comment, stage: "MEETING_SCHEDULED" },
+    });
+  }
+
+  const partner = await db.partner.update({
+    where: { id: partnerId },
+    data: {
+      mouCountersignedAt: date,
+      mouCountersignedComment: comment,
+      stage: "ONBOARDING",
+      icaiVerified: true,
+      msaSignedAt: date,
+    },
+  });
+
+  await notifyPartnerUsers(partner.id, {
+    type: "MOU_COUNTERSIGNED",
+    title: "Your MOU has been countersigned",
+    body: "Next step: complete your certification demo. Request a slot any time from your dashboard.",
+    href: "/partner",
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "COUNTERSIGN_MOU",
+    targetType: "Partner",
+    targetId: partnerId,
+    meta: partner.firmName,
+  });
+
+  revalidatePath("/admin/partners");
+  revalidatePath(`/admin/partners/${partnerId}`);
+  revalidatePath("/partner");
+}
+
+/** Admin: onboarding-journey stage 3 — certification demo scheduled. */
+export async function completeDemoScheduleAction(partnerId: string, formData: FormData) {
+  const actor = await requirePartnerManager();
+  const demoScheduledAt = parseStageDate(formData);
+  const comment = parseComment(formData);
+
+  const partner = await db.partner.update({
+    where: { id: partnerId },
+    data: { demoScheduledAt, demoScheduledComment: comment },
+  });
+
+  await notifyPartnerUsers(partner.id, {
+    type: "DEMO_SCHEDULED",
+    title: "Your certification demo is scheduled",
+    body: `Scheduled for ${demoScheduledAt.toLocaleDateString("en-IN")} — attend it to get certified.`,
+    href: "/partner",
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "SCHEDULE_DEMO",
+    targetType: "Partner",
+    targetId: partnerId,
+    meta: `${partner.firmName} -> ${demoScheduledAt.toISOString()}`,
+  });
+
+  revalidatePath("/admin/partners");
+  revalidatePath(`/admin/partners/${partnerId}`);
+  revalidatePath("/partner");
+}
+
+/** Admin: onboarding-journey stage 4 — demo attended & certified. Same
+ * downstream effects as certifyPartnerAction (asset kit rows, login
+ * creation) plus records the comment/date on this specific step. */
+export async function completeCertificationAction(partnerId: string, formData: FormData) {
+  const actor = await requirePartnerManager();
+  const demoAttendedAt = parseStageDate(formData);
+  const comment = parseComment(formData);
+
+  const partner = await db.partner.update({
+    where: { id: partnerId },
+    data: {
+      stage: "CERTIFIED",
+      icaiVerified: true,
+      msaSignedAt: new Date(),
+      demoAttendedAt,
+      demoAttendedComment: comment,
+      certifiedAt: new Date(),
+    },
+  });
+
+  await db.assetKitItem.createMany({
+    data: ASSET_KEYS.map((key) => ({
+      partnerId: partner.id,
+      key,
+      owner:
+        key === "CERTIFICATE_BADGE" || key === "FIRST_CAMPAIGN_DRAFT"
+          ? "Auto (CRM)"
+          : "Marketing Ops",
+      dueAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+    })),
+  });
+
+  await db.assetKitItem.update({
+    where: { partnerId_key: { partnerId: partner.id, key: "CERTIFICATE_BADGE" } },
+    data: { status: "DELIVERED", deliveredAt: new Date() },
+  });
+
+  await db.activityEvent.create({
+    data: { partnerId: partner.id, type: "WEBINAR_ATTEND", meta: "demo_certified" },
+  });
+
+  const existingUser = await db.user.findFirst({ where: { partnerId } });
+  if (!existingUser) {
+    await createPartnerLogin(partner);
+  }
+
+  await notifyPartnerUsers(partner.id, {
+    type: "CERTIFIED",
+    title: "You're certified!",
+    body: "Your Implementation Advisor badge and asset kit are ready.",
+    href: "/partner/assets",
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "CERTIFY_PARTNER",
+    targetType: "Partner",
+    targetId: partner.id,
+    meta: partner.firmName,
+  });
+
+  revalidatePath("/admin/partners");
+  revalidatePath(`/admin/partners/${partnerId}`);
+}
+
+/** Admin: onboarding-journey stage 5 (final) — asset kit delivered. */
+export async function completeAssetKitDeliveredAction(partnerId: string, formData: FormData) {
+  const actor = await requirePartnerManager();
+  const assetKitDeliveredAt = parseStageDate(formData);
+  const comment = parseComment(formData);
+
+  const partner = await db.partner.update({
+    where: { id: partnerId },
+    data: { assetKitDeliveredAt, assetKitDeliveredComment: comment },
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "ASSET_KIT_DELIVERED",
+    targetType: "Partner",
+    targetId: partnerId,
+    meta: partner.firmName,
+  });
+
+  revalidatePath(`/admin/partners/${partnerId}`);
+}
+
+/** Admin: switch a partner's co-branded landing page live/offline without
+ * touching their onboarding stage. */
+export async function setMicrositeEnabledAction(partnerId: string, enabled: boolean) {
+  const actor = await requirePartnerManager();
+
+  const partner = await db.partner.update({
+    where: { id: partnerId },
+    data: { micrositeEnabled: enabled },
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: enabled ? "MICROSITE_ENABLED" : "MICROSITE_DISABLED",
+    targetType: "Partner",
+    targetId: partnerId,
+    meta: partner.firmName,
+  });
+
+  revalidatePath(`/admin/partners/${partnerId}`);
+}
+
+/** Admin: edit an advisor's payout master data on their behalf. */
+export async function updatePartnerPayoutAction(partnerId: string, formData: FormData) {
+  const actor = await requirePartnerManager();
+
+  const bankAccountName = String(formData.get("bankAccountName") ?? "").trim() || null;
+  const bankAccountNumber = String(formData.get("bankAccountNumber") ?? "").trim() || null;
+  const bankIfsc = String(formData.get("bankIfsc") ?? "").trim() || null;
+  const upiId = String(formData.get("upiId") ?? "").trim() || null;
+  const pan = String(formData.get("pan") ?? "").trim() || null;
+  const gstNumber = String(formData.get("gstNumber") ?? "").trim() || null;
+
+  const partner = await db.partner.update({
+    where: { id: partnerId },
+    data: { bankAccountName, bankAccountNumber, bankIfsc, upiId, pan, gstNumber },
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "UPDATE_PARTNER_PAYOUT",
+    targetType: "Partner",
+    targetId: partnerId,
+    meta: partner.firmName,
+  });
+
+  revalidatePath(`/admin/partners/${partnerId}`);
+}
+
 /** Partner: request a certification demo slot — the other direction of
  * scheduleDemoAction, for when the partner wants to move faster than the
  * team reaching out to them. */
@@ -367,7 +595,7 @@ export async function requestDemoAction() {
     data: { demoRequestedAt: new Date() },
   });
 
-  await notifyInternalUsers(["ADMIN", "PARTNER_MANAGER"], {
+  await notifyInternalUsers(["ADMIN", "OMNICARD_TEAM"], {
     type: "DEMO_REQUESTED",
     title: `${partner.firmName} requested a certification demo`,
     href: `/admin/partners/${partner.id}`,

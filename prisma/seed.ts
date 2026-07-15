@@ -71,12 +71,18 @@ async function main() {
       mustChangePassword: false,
     },
   });
+  // Three OmniCard Team members share one role (marketing/sales/accounts/PM
+  // all operate the same CRM with the same rights); two are flagged as
+  // sales reps so round-robin lead assignment has more than one rep to
+  // pick from out of the box.
   await db.user.create({
     data: {
       email: "ops@omnicard.in",
       passwordHash: await bcrypt.hash(PASSWORD, 10),
       name: "Karan Mehra",
-      role: "PARTNER_MANAGER",
+      role: "OMNICARD_TEAM",
+      isSalesRep: true,
+      assignmentPriority: 0,
       mustChangePassword: false,
     },
   });
@@ -85,7 +91,9 @@ async function main() {
       email: "sales@omnicard.in",
       passwordHash: await bcrypt.hash(PASSWORD, 10),
       name: "Divya Nair",
-      role: "SALES",
+      role: "OMNICARD_TEAM",
+      isSalesRep: true,
+      assignmentPriority: 1,
       mustChangePassword: false,
     },
   });
@@ -94,7 +102,7 @@ async function main() {
       email: "marketing@omnicard.in",
       passwordHash: await bcrypt.hash(PASSWORD, 10),
       name: "Farhan Sheikh",
-      role: "MARKETING_OPS",
+      role: "OMNICARD_TEAM",
       mustChangePassword: false,
     },
   });

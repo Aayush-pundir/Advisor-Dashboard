@@ -6,6 +6,7 @@ import { inviteInternalUserAction } from "@/app/actions/team";
 import { USER_ROLES } from "@/lib/enums";
 
 const INVITABLE_ROLES = USER_ROLES.filter((r) => r !== "CA");
+const ROLE_LABELS: Record<string, string> = { ADMIN: "Admin", OMNICARD_TEAM: "OmniCard Team" };
 
 export function InviteInternalUserForm() {
   const [isPending, startTransition] = useTransition();
@@ -51,7 +52,7 @@ export function InviteInternalUserForm() {
         >
           {INVITABLE_ROLES.map((r) => (
             <option key={r} value={r}>
-              {r.replace("_", " ")}
+              {ROLE_LABELS[r] ?? r}
             </option>
           ))}
         </select>

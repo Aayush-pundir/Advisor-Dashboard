@@ -37,7 +37,7 @@ export default async function AdminLeadsPage({
       orderBy: sort === "score" ? { score: "desc" } : { createdAt: "desc" },
     }),
     getAuthedUser(),
-    db.user.findMany({ where: { role: "SALES", active: true }, select: { id: true, name: true } }),
+    db.user.findMany({ where: { role: "OMNICARD_TEAM", active: true, isSalesRep: true }, select: { id: true, name: true } }),
   ]);
   const canManage = actor ? canManageLeads(actor.role as UserRole) : false;
 

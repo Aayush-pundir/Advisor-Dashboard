@@ -1,26 +1,26 @@
 import type { UserRole } from "@/lib/enums";
 
 /**
- * Role permission matrix for the internal ops console. Four roles exist
- * (Step 1.5 "4-person pod"): ADMIN has full access; the other three map to
- * the pod's actual job functions so each role only writes to the part of
- * the CRM it owns.
+ * Role permission matrix for the internal ops console. Two internal login
+ * types exist: ADMIN (full control, exclusive over team management and the
+ * audit log) and OMNICARD_TEAM (marketing/sales/accounts/PM share one role
+ * with full CRM edit rights). CA is the advisor/partner login.
  */
 
 export function canManagePartners(role: UserRole) {
-  return role === "ADMIN" || role === "PARTNER_MANAGER";
+  return role === "ADMIN" || role === "OMNICARD_TEAM";
 }
 
 export function canManageLeads(role: UserRole) {
-  return role === "ADMIN" || role === "SALES";
+  return role === "ADMIN" || role === "OMNICARD_TEAM";
 }
 
 export function canManageCampaigns(role: UserRole) {
-  return role === "ADMIN" || role === "MARKETING_OPS";
+  return role === "ADMIN" || role === "OMNICARD_TEAM";
 }
 
 export function canViewCommissions(role: UserRole) {
-  return role === "ADMIN" || role === "PARTNER_MANAGER" || role === "SALES";
+  return role === "ADMIN" || role === "OMNICARD_TEAM";
 }
 
 export function canManageTeam(role: UserRole) {
@@ -32,10 +32,9 @@ export function canViewAuditLog(role: UserRole) {
 }
 
 /** Who can reveal masked client PII (phone/email) for campaign execution —
- * every internal ops role can, since all four run some part of the funnel
- * that eventually needs to contact a client, but the reveal is always logged. */
+ * every internal role can, since the reveal is always logged regardless. */
 export function canRevealPii(role: UserRole) {
-  return role === "ADMIN" || role === "PARTNER_MANAGER" || role === "SALES" || role === "MARKETING_OPS";
+  return role === "ADMIN" || role === "OMNICARD_TEAM";
 }
 
 export class ForbiddenError extends Error {

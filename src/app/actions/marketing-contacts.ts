@@ -42,7 +42,7 @@ export async function bulkImportMarketingContactsAction(
     })),
   });
 
-  await notifyInternalUsers(["ADMIN", "MARKETING_OPS"], {
+  await notifyInternalUsers(["ADMIN", "OMNICARD_TEAM"], {
     type: "MARKETING_CONTACTS_UPLOADED",
     title: `${result.count} client contacts uploaded for campaigns`,
     href: "/admin/marketing-contacts",

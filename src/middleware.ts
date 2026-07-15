@@ -6,7 +6,7 @@ const secret = new TextEncoder().encode(
   process.env.AUTH_SECRET ?? "dev-only-insecure-secret-change-in-prod",
 );
 
-const ADMIN_ROLES = ["ADMIN", "PARTNER_MANAGER", "MARKETING_OPS", "SALES"];
+const ADMIN_ROLES = ["ADMIN", "OMNICARD_TEAM"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

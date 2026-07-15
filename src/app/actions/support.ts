@@ -30,7 +30,7 @@ export async function createSupportTicketAction(
     },
   });
 
-  await notifyInternalUsers(["ADMIN", "PARTNER_MANAGER"], {
+  await notifyInternalUsers(["ADMIN", "OMNICARD_TEAM"], {
     type: "SUPPORT_TICKET",
     title: `New ${priority.toLowerCase()} ticket: ${subject}`,
     body: `From ${user.name}`,

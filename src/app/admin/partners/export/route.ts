@@ -3,7 +3,6 @@ import { getAuthedUser } from "@/lib/auth";
 import { canManagePartners } from "@/lib/permissions";
 import type { UserRole } from "@/lib/enums";
 import { toCsv } from "@/lib/csv";
-import { icpTotal } from "@/lib/enums";
 
 export async function GET() {
   const actor = await getAuthedUser();
@@ -21,7 +20,6 @@ export async function GET() {
       phone: p.phone,
       city: p.city,
       state: p.state,
-      icpScore: icpTotal(p),
       stage: p.stage,
       badgeTier: p.badgeTier,
       certLevel: p.certLevel,
@@ -34,7 +32,6 @@ export async function GET() {
       { key: "phone", header: "Phone" },
       { key: "city", header: "City" },
       { key: "state", header: "State" },
-      { key: "icpScore", header: "ICP Score" },
       { key: "stage", header: "Stage" },
       { key: "badgeTier", header: "Badge Tier" },
       { key: "certLevel", header: "Cert Level" },

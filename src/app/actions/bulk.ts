@@ -69,7 +69,7 @@ export async function bulkImportLeadsAction(
   }
 
   if (created > 0) {
-    await notifyInternalUsers(["ADMIN", "MARKETING_OPS"], {
+    await notifyInternalUsers(["ADMIN", "OMNICARD_TEAM"], {
       type: "BULK_LEADS_UPLOADED",
       title: `${created} client leads bulk-uploaded`,
       body: "New leads are available for masked campaign targeting.",

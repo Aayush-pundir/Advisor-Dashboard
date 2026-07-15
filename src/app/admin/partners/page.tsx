@@ -8,7 +8,6 @@ import { PartnersBulkUploader } from "@/components/admin/partners-bulk-uploader"
 import { CsvExportButton } from "@/components/admin/csv-export-button";
 import { buildDuplicateMap } from "@/lib/duplicate-detection";
 import {
-  icpTotal,
   PARTNER_STAGES,
   PARTNER_STAGE_LABELS,
   BADGE_TIERS,
@@ -62,9 +61,6 @@ export default async function AdminPartnersPage({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Partners (CRM)</h1>
-          <p className="mt-1 text-muted">
-            ICP-scored CA pipeline — pursue 70+, skip &lt;50.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <CsvExportButton href="/admin/partners/export" label="Export CSV" />
@@ -172,7 +168,6 @@ export default async function AdminPartnersPage({
             <tr>
               <th className="p-3 font-medium">Firm</th>
               <th className="p-3 font-medium">City</th>
-              <th className="p-3 font-medium">ICP score</th>
               <th className="p-3 font-medium">Stage</th>
               <th className="p-3 font-medium">Tier</th>
               <th className="p-3 font-medium">Certification</th>
@@ -181,7 +176,6 @@ export default async function AdminPartnersPage({
           </thead>
           <tbody>
             {partners.map((p) => {
-              const score = icpTotal(p);
               const cityKey = `${p.city.toLowerCase()}, ${p.state.toLowerCase()}`;
               const hasOverlap = p.stage !== "DORMANT" && (cityCounts.get(cityKey) ?? 0) > 1;
               const dupes = duplicateMap.get(p.id) ?? [];
@@ -205,11 +199,6 @@ export default async function AdminPartnersPage({
                         Territory overlap
                       </Badge>
                     )}
-                  </td>
-                  <td className="p-3">
-                    <span className={score >= 70 ? "font-medium text-emerald-700" : score < 50 ? "font-medium text-rose-600" : ""}>
-                      {score}
-                    </span>
                   </td>
                   <td className="p-3">
                     <Badge variant={stageVariant[p.stage as PartnerStage]}>

@@ -4,13 +4,10 @@
  * truth for valid values across the app (forms, seed data, badges, etc).
  */
 
-export const USER_ROLES = [
-  "ADMIN",
-  "PARTNER_MANAGER",
-  "MARKETING_OPS",
-  "SALES",
-  "CA",
-] as const;
+// Three login types: ADMIN (full control, exclusive audit-log access),
+// OMNICARD_TEAM (marketing/sales/accounts/PM — one shared internal-ops
+// role with full CRM edit rights), and CA (the advisor/partner login).
+export const USER_ROLES = ["ADMIN", "OMNICARD_TEAM", "CA"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
 export const PARTNER_STAGES = [

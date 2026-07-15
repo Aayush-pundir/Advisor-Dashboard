@@ -30,6 +30,12 @@ model User {
   lastLoginAt        DateTime?
   active             Boolean   @default(true)
 
+  // Round-robin lead assignment eligibility — a subset of OMNICARD_TEAM
+  // members who actually work leads; priority is admin-set (lower = picked
+  // first when tied on open-lead count).
+  isSalesRep         Boolean   @default(false)
+  assignmentPriority Int       @default(0)
+
   twoFactorSecret  String?
   twoFactorEnabled Boolean @default(false)
 
@@ -119,11 +125,21 @@ model Partner {
 
   stage              String    @default("LEAD")
   acceptedAt         DateTime? // admin accepted the lead & scheduled an intro call
+  acceptedComment    String?
   mouCountersignedAt DateTime? // OmniCard team countersigned the MOU
+  mouCountersignedComment String?
   demoRequestedAt    DateTime? // partner requested a demo/training slot
   certifiedAt        DateTime?
   demoScheduledAt    DateTime?
+  demoScheduledComment String?
   demoAttendedAt     DateTime?
+  demoAttendedComment String?
+  assetKitDeliveredAt DateTime?
+  assetKitDeliveredComment String?
+
+  // Public co-landing page (/advisor/[slug]) can be switched off by admin
+  // even once the partner is certified/active.
+  micrositeEnabled Boolean @default(true)
 
   // ICP scoring — Step 1.2 (100 pts total)
   icpClients  Int @default(0) // /25
@@ -189,6 +205,7 @@ model AssetKitItem {
   partnerId   String
   partner     Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   key         String
+  customLabel String? // set when admin adds an ad-hoc asset not in the fixed ASSET_KEYS list
   status      String    @default("PENDING")
   owner       String // e.g. "Marketing Ops", "Auto (CRM)", "Design"
   dueAt       DateTime?
@@ -217,6 +234,8 @@ model Lead {
   closedAt     DateTime?
   lossReason   String? // required when stage=CLOSED_LOST
   score        Int          @default(0) // 0-100, computed lead-scoring engine
+  category     String? // SME | MEDIUM | ENTERPRISE — set by OmniCard team only, visible read-only to the advisor
+  billingCycle String  @default("ANNUAL") // ANNUAL | MONTHLY — commercial cycle for dealValue
   commissions  Commission[]
   createdAt    DateTime     @default(now())
 
@@ -269,6 +288,7 @@ model Commission {
   amount     Int // INR
   status     String    @default("PENDING")
   creditedAt DateTime?
+  paidAt     DateTime?
   createdAt  DateTime  @default(now())
 
   @@index([partnerId])
@@ -317,6 +337,13 @@ model Campaign {
   approvedAt  DateTime?
   sentAt      DateTime?
   createdAt   DateTime  @default(now())
+
+  // Advisor-initiated requests — the advisor proposes a mode + title/topic;
+  // OmniCard reviews and takes it through the rest of the lifecycle below.
+  requestedByPartner Boolean   @default(false)
+  requestNote        String? // advisor's note on preference/topic when requesting
+  contentApprovedAt  DateTime?
+  liveAt             DateTime?
 
   @@index([partnerId])
 }
@@ -374,6 +401,7 @@ model SupportTicket {
   status          String    @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | ESCALATED
   priority        String    @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
   escalationLevel Int       @default(1) // 1=Partner Success, 2=Partner Manager, 3=Regional Head, 4=Leadership
+  resolution      String? // notes on how/why it was resolved
   createdAt       DateTime  @default(now())
   resolvedAt      DateTime?
 

@@ -5,7 +5,7 @@ import type { UserRole } from "@/lib/enums";
 
 type Result = { type: string; label: string; sublabel: string; href: string };
 
-const ADMIN_ROLES: UserRole[] = ["ADMIN", "PARTNER_MANAGER", "MARKETING_OPS", "SALES"];
+const ADMIN_ROLES: UserRole[] = ["ADMIN", "OMNICARD_TEAM"];
 
 export async function GET(req: NextRequest) {
   const user = await getAuthedUser();

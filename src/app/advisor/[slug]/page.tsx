@@ -42,7 +42,7 @@ export default async function AdvisorMicrosite({
 }) {
   const { slug } = await params;
   const partner = await db.partner.findUnique({ where: { slug } });
-  if (!partner || (partner.stage !== "CERTIFIED" && partner.stage !== "ACTIVE")) {
+  if (!partner || (partner.stage !== "CERTIFIED" && partner.stage !== "ACTIVE") || !partner.micrositeEnabled) {
     notFound();
   }
 

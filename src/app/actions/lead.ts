@@ -69,7 +69,7 @@ export async function addLeadManuallyAction(
     },
   });
 
-  await notifyInternalUsers(["ADMIN", "SALES"], {
+  await notifyInternalUsers(["ADMIN", "OMNICARD_TEAM"], {
     type: "LEAD_CAPTURED",
     title: `New lead: ${businessName}`,
     href: "/admin/leads",

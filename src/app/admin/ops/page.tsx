@@ -1,14 +1,25 @@
 import { db } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { StatTile } from "@/components/ui/stat-tile";
+import { getAuthedUser } from "@/lib/auth";
+import { canManageTeam } from "@/lib/permissions";
+import type { UserRole } from "@/lib/enums";
+import { SalesRepControls } from "@/components/admin/sales-rep-controls";
 
 const SLA_CONTACT_HOURS = 24;
 
 export default async function AdminOpsPage() {
-  const [reps, leads] = await Promise.all([
-    db.user.findMany({ where: { role: "SALES", active: true }, select: { id: true, name: true } }),
+  const [team, leads, actor] = await Promise.all([
+    db.user.findMany({
+      where: { role: "OMNICARD_TEAM", active: true },
+      orderBy: [{ isSalesRep: "desc" }, { assignmentPriority: "asc" }],
+      select: { id: true, name: true, isSalesRep: true, assignmentPriority: true },
+    }),
     db.lead.findMany({ select: { assignedToId: true, stage: true, createdAt: true, contactedAt: true } }),
+    getAuthedUser(),
   ]);
+  const canManage = actor ? canManageTeam(actor.role as UserRole) : false;
+  const reps = team.filter((t) => t.isSalesRep);
 
   const unassigned = leads.filter((l) => !l.assignedToId).length;
 
@@ -92,6 +103,27 @@ export default async function AdminOpsPage() {
           <p className="p-6 text-center text-muted">No active sales reps yet.</p>
         )}
       </Card>
+
+      {canManage && (
+        <Card className="mt-6">
+          <div className="border-b border-border p-4">
+            <p className="text-sm font-semibold">Manage sales reps</p>
+            <p className="mt-1 text-xs text-muted">
+              Only reps flagged here are eligible for round-robin lead assignment. Lower priority number is
+              picked first when reps are tied on open-lead count.
+            </p>
+          </div>
+          <div className="divide-y divide-border">
+            {team.map((t) => (
+              <div key={t.id} className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm font-medium">{t.name}</span>
+                <SalesRepControls userId={t.id} isSalesRep={t.isSalesRep} priority={t.assignmentPriority} />
+              </div>
+            ))}
+            {team.length === 0 && <p className="p-6 text-center text-muted">No OmniCard Team members yet.</p>}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

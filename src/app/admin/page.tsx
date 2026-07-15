@@ -5,7 +5,7 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FunnelChart } from "@/components/admin/funnel-chart";
-import { QueueSection, QueueRow } from "@/components/admin/queue-row";
+import { QueueRow } from "@/components/admin/queue-row";
 import { formatINR, formatDate } from "@/lib/utils";
 import { PARTNER_STAGE_LABELS, LEAD_STAGE_LABELS, type PartnerStage, type LeadStage } from "@/lib/enums";
 import { CsvExportButton } from "@/components/admin/csv-export-button";
@@ -14,12 +14,13 @@ export default async function AdminOverviewPage() {
   await escalateOverdueActivities();
 
   const {
-    totalPartners,
-    certifiedOrActive,
+    certifiedCount,
+    activeCount,
     stageCounts,
     leadStageCounts,
+    totalClientsOnboarded,
     totalRevenue,
-    totalCommissionsCredited,
+    totalAdvisoryFeesPaid,
     badgeCounts,
   } = await getAdminOverview();
 
@@ -79,83 +80,14 @@ export default async function AdminOverviewPage() {
         <CsvExportButton href="/admin/kpi-export" label="Export KPI CSV" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Total partners" value={String(totalPartners)} />
-        <StatTile label="Certified / Active" value={String(certifiedOrActive)} hint="running campaigns" />
-        <StatTile label="Client revenue closed" value={formatINR(totalRevenue)} hint="lifetime, all partners" />
-        <StatTile label="Commissions credited" value={formatINR(totalCommissionsCredited)} hint="paid to CA wallets" />
-      </div>
-
       <div>
-        <h2 className="text-lg font-semibold">
-          Needs your attention{" "}
-          {queueTotal > 0 && (
-            <span className="ml-1 text-sm font-normal text-muted">({queueTotal})</span>
-          )}
-        </h2>
-        <div className="mt-3 flex flex-col gap-4">
-          <QueueSection title="Partner leads awaiting acceptance" emptyText="No new partner leads waiting.">
-            {pendingAccept.map((p) => (
-              <QueueRow
-                key={p.id}
-                href={`/admin/partners/${p.id}`}
-                primary={p.firmName}
-                secondary={p.contactName}
-                meta={formatDate(p.createdAt)}
-              />
-            ))}
-          </QueueSection>
-
-          <QueueSection title="MOUs awaiting countersignature" emptyText="No MOUs waiting on a countersignature.">
-            {pendingCountersign.map((p) => (
-              <QueueRow
-                key={p.id}
-                href={`/admin/partners/${p.id}`}
-                primary={p.firmName}
-                secondary={p.contactName}
-                meta={p.acceptedAt ? formatDate(p.acceptedAt) : ""}
-              />
-            ))}
-          </QueueSection>
-
-          <QueueSection title="Partners awaiting a certification demo" emptyText="No partners waiting on a demo slot.">
-            {awaitingDemo.map((p) => (
-              <QueueRow
-                key={p.id}
-                href={`/admin/partners/${p.id}`}
-                primary={p.firmName}
-                secondary={p.contactName}
-                meta={p.demoRequestedAt ? "Requested a slot" : "Awaiting outreach"}
-                badge={p.demoRequestedAt ? <Badge variant="warning">Requested</Badge> : undefined}
-              />
-            ))}
-          </QueueSection>
-
-          <QueueSection title="Open support tickets" emptyText="No open support tickets.">
-            {openTickets.map((t) => (
-              <QueueRow
-                key={t.id}
-                href="/admin/support"
-                primary={t.subject}
-                secondary={`${t.user.name}${t.partner ? ` · ${t.partner.firmName}` : ""}`}
-                meta={formatDate(t.createdAt)}
-                badge={t.status === "ESCALATED" ? <Badge variant="danger">Escalated</Badge> : undefined}
-              />
-            ))}
-          </QueueSection>
-
-          <QueueSection title="Hot leads needing attention" emptyText="No high-scoring leads waiting on contact or assignment.">
-            {hotLeads.map((l) => (
-              <QueueRow
-                key={l.id}
-                href={`/admin/leads/${l.id}`}
-                primary={l.businessName}
-                secondary={l.partner.firmName}
-                meta={!l.assignedToId ? "Unassigned" : !l.contactedAt ? "Not yet contacted" : undefined}
-                badge={<Badge variant="success">{l.score}</Badge>}
-              />
-            ))}
-          </QueueSection>
+        <h2 className="text-lg font-semibold">Program performance</h2>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <StatTile label="Certified partners" value={String(certifiedCount)} />
+          <StatTile label="Active partners" value={String(activeCount)} hint="running campaigns" />
+          <StatTile label="Total clients onboarded" value={String(totalClientsOnboarded)} />
+          <StatTile label="Total client revenue" value={formatINR(totalRevenue)} hint="lifetime, all partners" />
+          <StatTile label="Total advisory fees paid" value={formatINR(totalAdvisoryFeesPaid)} />
         </div>
       </div>
 
@@ -192,6 +124,101 @@ export default async function AdminOverviewPage() {
           <p className="mt-1 text-xl font-semibold">{badgeCounts.PLATINUM ?? 0}</p>
         </Card>
       </div>
+
+      <div>
+        <h2 className="text-lg font-semibold">
+          Needs your attention{" "}
+          {queueTotal > 0 && (
+            <span className="ml-1 text-sm font-normal text-muted">({queueTotal})</span>
+          )}
+        </h2>
+        <div className="mt-3 grid gap-4 overflow-x-auto pb-2 sm:grid-cols-2 lg:grid-flow-col lg:auto-cols-[minmax(230px,1fr)]">
+          <QueueColumn title="Partner leads awaiting acceptance" emptyText="No new partner leads waiting.">
+            {pendingAccept.map((p) => (
+              <QueueRow
+                key={p.id}
+                href={`/admin/partners/${p.id}`}
+                primary={p.firmName}
+                secondary={p.contactName}
+                meta={formatDate(p.createdAt)}
+              />
+            ))}
+          </QueueColumn>
+
+          <QueueColumn title="MOUs awaiting countersignature" emptyText="No MOUs waiting on a countersignature.">
+            {pendingCountersign.map((p) => (
+              <QueueRow
+                key={p.id}
+                href={`/admin/partners/${p.id}`}
+                primary={p.firmName}
+                secondary={p.contactName}
+                meta={p.acceptedAt ? formatDate(p.acceptedAt) : ""}
+              />
+            ))}
+          </QueueColumn>
+
+          <QueueColumn title="Awaiting certification demo" emptyText="No partners waiting on a demo slot.">
+            {awaitingDemo.map((p) => (
+              <QueueRow
+                key={p.id}
+                href={`/admin/partners/${p.id}`}
+                primary={p.firmName}
+                secondary={p.contactName}
+                meta={p.demoRequestedAt ? "Requested a slot" : "Awaiting outreach"}
+                badge={p.demoRequestedAt ? <Badge variant="warning">Requested</Badge> : undefined}
+              />
+            ))}
+          </QueueColumn>
+
+          <QueueColumn title="Open support tickets" emptyText="No open support tickets.">
+            {openTickets.map((t) => (
+              <QueueRow
+                key={t.id}
+                href="/admin/support"
+                primary={t.subject}
+                secondary={`${t.user.name}${t.partner ? ` · ${t.partner.firmName}` : ""}`}
+                meta={formatDate(t.createdAt)}
+                badge={t.status === "ESCALATED" ? <Badge variant="danger">Escalated</Badge> : undefined}
+              />
+            ))}
+          </QueueColumn>
+
+          <QueueColumn title="Hot leads needing attention" emptyText="No high-scoring leads waiting on contact or assignment.">
+            {hotLeads.map((l) => (
+              <QueueRow
+                key={l.id}
+                href={`/admin/leads/${l.id}`}
+                primary={l.businessName}
+                secondary={l.partner.firmName}
+                meta={!l.assignedToId ? "Unassigned" : !l.contactedAt ? "Not yet contacted" : undefined}
+                badge={<Badge variant="success">{l.score}</Badge>}
+              />
+            ))}
+          </QueueColumn>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function QueueColumn({
+  title,
+  emptyText,
+  children,
+}: {
+  title: string;
+  emptyText: string;
+  children: React.ReactNode;
+}) {
+  const hasItems = Array.isArray(children) ? children.length > 0 : !!children;
+  return (
+    <Card className="flex min-w-[230px] flex-col">
+      <div className="border-b border-border px-4 py-3">
+        <p className="text-sm font-semibold">{title}</p>
+      </div>
+      <div className="flex flex-1 flex-col divide-y divide-border">
+        {hasItems ? children : <p className="p-4 text-center text-xs text-muted">{emptyText}</p>}
+      </div>
+    </Card>
   );
 }
