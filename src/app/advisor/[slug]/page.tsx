@@ -13,7 +13,7 @@ const STATS = [
   { value: "RBI Licensed", label: "PPI issuer" },
   { value: "12L+", label: "Cards issued" },
   { value: "32L+", label: "Users on OmniCard" },
-  { value: "500+", label: "Businesses trust us" },
+  { value: "1000+", label: "Businesses trust us" },
 ];
 
 const BENEFITS = [
