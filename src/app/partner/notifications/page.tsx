@@ -19,7 +19,7 @@ export default async function PartnerNotificationsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Notifications</h1>
-          <p className="mt-1 text-muted">Milestones, leads, commissions, and campaigns as they happen.</p>
+          <p className="mt-1 text-muted">Milestones, leads, advisory fees, and campaigns as they happen.</p>
         </div>
         <form action={markAllNotificationsReadAction}>
           <Button variant="outline" size="sm" type="submit">

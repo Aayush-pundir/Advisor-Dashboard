@@ -32,7 +32,6 @@ export async function addLeadManuallyAction(
   const contactName = String(formData.get("contactName") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
-  const dealValue = Number(formData.get("dealValue") ?? 0);
 
   if (!businessName || !contactName || !phone || !email) {
     return { ok: false, error: "Please fill in business name, contact name, phone and email." };
@@ -44,7 +43,6 @@ export async function addLeadManuallyAction(
   }
 
   const assignedToId = await pickNextSalesRep();
-  const roundedDealValue = dealValue > 0 ? Math.round(dealValue) : 0;
   const createdAt = new Date();
 
   await db.lead.create({
@@ -54,7 +52,6 @@ export async function addLeadManuallyAction(
       contactName,
       phone,
       email,
-      dealValue: roundedDealValue,
       source: "PARTNER_MANUAL",
       stage: "CAPTURED",
       assignedToId,
@@ -62,7 +59,7 @@ export async function addLeadManuallyAction(
       score: computeLeadScore({
         source: "PARTNER_MANUAL",
         stage: "CAPTURED",
-        dealValue: roundedDealValue,
+        dealValue: 0,
         createdAt,
         contactedAt: null,
       }),
@@ -189,6 +186,39 @@ export async function advanceLeadStageAction(
   revalidatePath("/partner/leads");
 
   return { ok: true };
+}
+
+/** Admin/OmniCard Team only: finalize the commercials on a lead — deal
+ * value, billing cycle and business-size category. The advisor never sets
+ * these; they just refer the lead and see the finalized numbers here for
+ * transparency. */
+export async function updateLeadCommercialsAction(leadId: string, formData: FormData) {
+  const actor = await getAuthedUser();
+  if (!actor || !canManageLeads(actor.role as UserRole)) {
+    throw new ForbiddenError("finalize lead commercials");
+  }
+
+  const dealValue = Math.max(0, Math.round(Number(formData.get("dealValue") ?? 0)));
+  const billingCycle = String(formData.get("billingCycle") ?? "ANNUAL");
+  const category = String(formData.get("category") ?? "").trim() || null;
+
+  const lead = await db.lead.update({
+    where: { id: leadId },
+    data: { dealValue, billingCycle, category },
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "UPDATE_LEAD_COMMERCIALS",
+    targetType: "Lead",
+    targetId: leadId,
+    meta: `${lead.businessName} -> ${formatINR(dealValue)} (${billingCycle}${category ? `, ${category}` : ""})`,
+  });
+
+  revalidatePath("/admin/leads");
+  revalidatePath(`/admin/leads/${leadId}`);
+  revalidatePath("/partner/leads");
 }
 
 /** Admin: manually reassign a lead to a different sales rep, overriding the

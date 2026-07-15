@@ -62,7 +62,7 @@ export default async function PartnerSettingsPage({
         </CardHeader>
         <CardContent>
           <p className="mb-4 text-sm text-muted">
-            Where your Year-1 and trailing commissions are settled.
+            Where your Year-1 and trailing advisory fees are settled.
           </p>
           <form action={updatePayoutAction} className="grid gap-4 sm:grid-cols-2">
             <Field label="Bank account name" name="bankAccountName" defaultValue={partner.bankAccountName ?? ""} />

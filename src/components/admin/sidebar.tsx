@@ -11,7 +11,7 @@ const links = [
   { href: "/admin/leads", label: "Lead-to-Revenue" },
   { href: "/admin/ops", label: "Ops Efficiency" },
   { href: "/admin/campaigns", label: "Campaigns" },
-  { href: "/admin/commissions", label: "Commission Ledger" },
+  { href: "/admin/commissions", label: "Advisory Fees Ledger" },
   { href: "/admin/support", label: "Support Tickets" },
   { href: "/admin/exports", label: "Export Center" },
 ];

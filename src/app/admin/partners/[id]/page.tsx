@@ -24,6 +24,7 @@ import {
 } from "@/app/actions/partner";
 import { OnboardingStageForm } from "@/components/admin/onboarding-stage-form";
 import { MicrositeToggle } from "@/components/admin/microsite-toggle";
+import { AssetKitManager } from "@/components/admin/asset-kit-manager";
 import { getAuthedUser } from "@/lib/auth";
 import { canManagePartners } from "@/lib/permissions";
 import type { UserRole } from "@/lib/enums";
@@ -49,10 +50,12 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
   const actor = await getAuthedUser();
   const canManage = actor ? canManagePartners(actor.role as UserRole) : false;
 
-  const [notes, activities] = await Promise.all([
+  const [notes, activities, teamMembers] = await Promise.all([
     db.note.findMany({ where: { relatedToType: "PARTNER", relatedToId: partner.id }, orderBy: { createdAt: "desc" } }),
     db.recordActivity.findMany({ where: { relatedToType: "PARTNER", relatedToId: partner.id }, orderBy: { createdAt: "desc" } }),
+    db.user.findMany({ where: { role: "OMNICARD_TEAM", active: true }, select: { name: true }, orderBy: { name: "asc" } }),
   ]);
+  const teamNames = teamMembers.map((t) => t.name);
 
   const deliveredAssets = partner.assetKitItems.filter((a) => a.status === "DELIVERED").length;
   const convertedLeads = partner.leads.filter((l) => l.stage === "CLOSED_WON");
@@ -229,6 +232,17 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
                 />
               )}
             </OnboardingStep>
+          </CardContent>
+        </Card>
+      )}
+
+      {canManage && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Asset kit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AssetKitManager partnerId={partner.id} items={partner.assetKitItems} teamNames={teamNames} />
           </CardContent>
         </Card>
       )}

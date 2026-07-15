@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatINR, formatDate } from "@/lib/utils";
-import { LEAD_STAGE_LABELS, type LeadStage } from "@/lib/enums";
+import { LEAD_STAGE_LABELS, LEAD_CATEGORY_LABELS, type LeadStage, type LeadCategory } from "@/lib/enums";
 import { AddLeadForm } from "@/components/partner/add-lead-form";
 import { LeadsBulkUploader } from "@/components/partner/leads-bulk-uploader";
 import { MarketingContactsUploader } from "@/components/partner/marketing-contacts-uploader";
@@ -89,6 +89,7 @@ async function LeadsTab({ partnerId }: { partnerId: string }) {
               <th className="p-3 font-medium">Contact</th>
               <th className="p-3 font-medium">Source</th>
               <th className="p-3 font-medium">Stage</th>
+              <th className="p-3 font-medium">Category</th>
               <th className="p-3 font-medium">Deal value</th>
               <th className="p-3 font-medium">Captured</th>
             </tr>
@@ -103,6 +104,9 @@ async function LeadsTab({ partnerId }: { partnerId: string }) {
                   <Badge variant={stageVariant[l.stage as LeadStage]}>
                     {LEAD_STAGE_LABELS[l.stage as LeadStage]}
                   </Badge>
+                </td>
+                <td className="p-3 text-muted">
+                  {l.category ? LEAD_CATEGORY_LABELS[l.category as LeadCategory] : "—"}
                 </td>
                 <td className="p-3">{formatINR(l.dealValue)}</td>
                 <td className="p-3 text-muted">{formatDate(l.createdAt)}</td>

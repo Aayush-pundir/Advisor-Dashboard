@@ -50,7 +50,6 @@ export function AddLeadForm() {
         <input name="contactName" required placeholder="Contact name" className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand" />
         <input name="phone" required placeholder="Phone" className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand" />
         <input name="email" type="email" required placeholder="Email" className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand" />
-        <input name="dealValue" type="number" min="0" placeholder="Deal value (INR, optional)" className="rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand" />
         <div className="sm:col-span-2">
           <Button type="submit" disabled={isPending}>
             {isPending ? "Adding…" : "Add lead"}

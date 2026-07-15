@@ -25,7 +25,7 @@ export function MergePartnerButton({
       onClick={() => {
         if (
           !confirm(
-            `Merge "${mergedFirmName}" into "${survivorFirmName}"? All leads, contacts, commissions and history from "${mergedFirmName}" will move to "${survivorFirmName}", and "${mergedFirmName}" will be deleted. This cannot be undone.`,
+            `Merge "${mergedFirmName}" into "${survivorFirmName}"? All leads, contacts, advisory fees and history from "${mergedFirmName}" will move to "${survivorFirmName}", and "${mergedFirmName}" will be deleted. This cannot be undone.`,
           )
         ) {
           return;

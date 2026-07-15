@@ -121,6 +121,17 @@ export const LEAD_STAGE_LABELS: Record<LeadStage, string> = {
   CLOSED_LOST: "Closed Lost",
 };
 
+/** Business-size category — set by the OmniCard team only, visible
+ * read-only to the referring advisor for transparency. */
+export const LEAD_CATEGORIES = ["SME", "MEDIUM", "ENTERPRISE"] as const;
+export type LeadCategory = (typeof LEAD_CATEGORIES)[number];
+
+export const LEAD_CATEGORY_LABELS: Record<LeadCategory, string> = {
+  SME: "SME",
+  MEDIUM: "Medium",
+  ENTERPRISE: "Enterprise",
+};
+
 export const COMMISSION_TYPES = ["YEAR1", "TRAILING", "REFERRAL_BONUS"] as const;
 export type CommissionType = (typeof COMMISSION_TYPES)[number];
 

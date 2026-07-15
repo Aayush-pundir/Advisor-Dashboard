@@ -12,7 +12,6 @@ const COLUMNS = [
   { key: "phone", label: "Phone", required: true },
   { key: "email", label: "Email", required: true },
   { key: "city", label: "City" },
-  { key: "dealValue", label: "Deal value (INR)" },
 ];
 
 export function LeadsBulkUploader() {
@@ -46,7 +45,6 @@ export function LeadsBulkUploader() {
                 phone: r.phone,
                 email: r.email,
                 city: r.city,
-                dealValue: r.dealValue ? Number(r.dealValue) : undefined,
               })),
             )
           }

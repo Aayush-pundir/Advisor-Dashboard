@@ -10,18 +10,13 @@ import { getAuthedUser } from "@/lib/auth";
 import { canManageLeads } from "@/lib/permissions";
 import { RevealPii } from "@/components/admin/reveal-pii";
 import { ReassignLeadSelect } from "@/components/admin/reassign-lead-select";
-import { LEAD_CONFLICT_PROTECTION_DAYS } from "@/lib/enums";
+import { LEAD_CONFLICT_PROTECTION_DAYS, LEAD_CATEGORY_LABELS, type LeadCategory } from "@/lib/enums";
 import { conflictProtectionCutoff } from "@/lib/lead-conflict";
 import { CsvExportButton } from "@/components/admin/csv-export-button";
 import { cn } from "@/lib/utils";
 import { LeadsKanban } from "@/components/admin/leads-kanban";
 import { buildLeadDuplicateMap } from "@/lib/duplicate-detection";
-
-function scoreVariant(score: number): "success" | "warning" | "neutral" {
-  if (score >= 70) return "success";
-  if (score >= 40) return "warning";
-  return "neutral";
-}
+import { LeadCommercialsForm } from "@/components/admin/lead-commercials-form";
 
 export default async function AdminLeadsPage({
   searchParams,
@@ -120,8 +115,8 @@ export default async function AdminLeadsPage({
               <th className="p-3 font-medium">Contact</th>
               <th className="p-3 font-medium">Referred by</th>
               <th className="p-3 font-medium">Source</th>
-              <th className="p-3 font-medium">Value</th>
-              <th className="p-3 font-medium">Score</th>
+              <th className="p-3 font-medium">Category</th>
+              <th className="p-3 font-medium">Commercials</th>
               <th className="p-3 font-medium">Captured</th>
               <th className="p-3 font-medium">Stage</th>
               <th className="p-3 font-medium">Assigned to</th>
@@ -169,9 +164,19 @@ export default async function AdminLeadsPage({
                 </td>
                 <td className="p-3 text-muted">{l.partner.firmName}</td>
                 <td className="p-3 text-muted">{l.source}</td>
-                <td className="p-3">{formatINR(l.dealValue)}</td>
                 <td className="p-3">
-                  <Badge variant={scoreVariant(l.score)}>{l.score}</Badge>
+                  {l.category ? (
+                    <Badge variant="neutral">{LEAD_CATEGORY_LABELS[l.category as LeadCategory]}</Badge>
+                  ) : (
+                    <span className="text-xs text-muted">Not set</span>
+                  )}
+                </td>
+                <td className="p-3">
+                  {canManage ? (
+                    <LeadCommercialsForm leadId={l.id} dealValue={l.dealValue} billingCycle={l.billingCycle} category={l.category} />
+                  ) : (
+                    <span className="text-xs">{formatINR(l.dealValue)}</span>
+                  )}
                 </td>
                 <td className="p-3 text-muted">{formatDate(l.createdAt)}</td>
                 <td className="p-3">

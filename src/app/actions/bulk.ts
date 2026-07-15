@@ -18,7 +18,6 @@ export type BulkLeadRow = {
   phone: string;
   email: string;
   city?: string;
-  dealValue?: number;
 };
 
 /** Partner-side bulk client upload (Step 6.1 at scale) — every row is tagged
@@ -48,7 +47,6 @@ export async function bulkImportLeadsAction(
     }
 
     const assignedToId = await pickNextSalesRep();
-    const dealValue = r.dealValue && r.dealValue > 0 ? Math.round(r.dealValue) : 0;
     const createdAt = new Date();
     await db.lead.create({
       data: {
@@ -57,12 +55,11 @@ export async function bulkImportLeadsAction(
         contactName: r.contactName.trim(),
         phone,
         email: r.email.trim(),
-        dealValue,
         source: "BULK_UPLOAD",
         stage: "CAPTURED",
         assignedToId,
         createdAt,
-        score: computeLeadScore({ source: "BULK_UPLOAD", stage: "CAPTURED", dealValue, createdAt, contactedAt: null }),
+        score: computeLeadScore({ source: "BULK_UPLOAD", stage: "CAPTURED", dealValue: 0, createdAt, contactedAt: null }),
       },
     });
     created += 1;
