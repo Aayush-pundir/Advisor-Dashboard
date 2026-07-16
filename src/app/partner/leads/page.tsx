@@ -4,7 +4,16 @@ import { db } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatINR, formatDate } from "@/lib/utils";
-import { LEAD_STAGE_LABELS, LEAD_CATEGORY_LABELS, type LeadStage, type LeadCategory } from "@/lib/enums";
+import { Button } from "@/components/ui/button";
+import {
+  LEAD_STAGES,
+  LEAD_STAGE_LABELS,
+  LEAD_CATEGORIES,
+  LEAD_CATEGORY_LABELS,
+  LEAD_SOURCES,
+  type LeadStage,
+  type LeadCategory,
+} from "@/lib/enums";
 import { AddLeadForm } from "@/components/partner/add-lead-form";
 import { LeadsBulkUploader } from "@/components/partner/leads-bulk-uploader";
 import { MarketingContactsUploader } from "@/components/partner/marketing-contacts-uploader";
@@ -23,9 +32,9 @@ const stageVariant: Record<LeadStage, "neutral" | "default" | "success" | "warni
 export default async function PartnerLeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; stage?: string; category?: string; source?: string }>;
 }) {
-  const { tab } = await searchParams;
+  const { tab, stage, category, source } = await searchParams;
   const activeTab = tab === "marketing" ? "marketing" : "leads";
   const session = await getSession();
 
@@ -44,7 +53,7 @@ export default async function PartnerLeadsPage({
       </div>
 
       {activeTab === "leads" ? (
-        <LeadsTab partnerId={session!.partnerId!} />
+        <LeadsTab partnerId={session!.partnerId!} stage={stage} category={category} source={source} />
       ) : (
         <MarketingTab partnerId={session!.partnerId!} />
       )}
@@ -67,11 +76,28 @@ function TabLink({ tab, activeTab, label }: { tab: string; activeTab: string; la
   );
 }
 
-async function LeadsTab({ partnerId }: { partnerId: string }) {
+async function LeadsTab({
+  partnerId,
+  stage,
+  category,
+  source,
+}: {
+  partnerId: string;
+  stage?: string;
+  category?: string;
+  source?: string;
+}) {
   const leads = await db.lead.findMany({
-    where: { partnerId },
+    where: {
+      partnerId,
+      ...(stage ? { stage } : {}),
+      ...(category ? { category } : {}),
+      ...(source ? { source } : {}),
+    },
     orderBy: { createdAt: "desc" },
   });
+
+  const hasFilters = !!(stage || category || source);
 
   return (
     <div className="mt-6">
@@ -81,7 +107,53 @@ async function LeadsTab({ partnerId }: { partnerId: string }) {
         <CsvExportButton href="/partner/leads/export" />
       </div>
 
-      <Card className="mt-6 overflow-x-auto">
+      <form method="GET" className="mt-4 flex flex-wrap items-end gap-3">
+        <div>
+          <label className="block text-xs font-medium text-muted">Stage</label>
+          <select name="stage" defaultValue={stage ?? ""} className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand">
+            <option value="">All stages</option>
+            {LEAD_STAGES.map((s) => (
+              <option key={s} value={s}>
+                {LEAD_STAGE_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted">Category</label>
+          <select name="category" defaultValue={category ?? ""} className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand">
+            <option value="">All categories</option>
+            {LEAD_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {LEAD_CATEGORY_LABELS[c]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted">Source</label>
+          <select name="source" defaultValue={source ?? ""} className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand">
+            <option value="">All sources</option>
+            {LEAD_SOURCES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button type="submit" size="sm">
+          Apply filters
+        </Button>
+        {hasFilters && (
+          <Link href="/partner/leads" className="text-sm text-muted hover:text-brand hover:underline">
+            Clear
+          </Link>
+        )}
+      </form>
+
+      <p className="mt-3 text-xs text-muted">{leads.length} lead(s)</p>
+
+      <Card className="mt-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-muted">
             <tr>

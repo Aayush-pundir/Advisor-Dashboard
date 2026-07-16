@@ -8,7 +8,7 @@ import { notifyPartnerUsers } from "@/lib/notify";
 import { logAudit } from "@/lib/audit";
 import type { UserRole } from "@/lib/enums";
 import { randomBytes } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 
 async function requireAssetManager() {
@@ -164,4 +164,29 @@ export async function updateAssetKitItemAction(itemId: string, formData: FormDat
   });
 
   revalidatePath(`/admin/partners/${item.partnerId}`);
+}
+
+/** Admin: remove an asset kit item entirely — fixed-catalogue or custom/
+ * uploaded — deleting the underlying file from disk where one was uploaded. */
+export async function deleteAssetKitItemAction(itemId: string) {
+  const actor = await requireAssetManager();
+
+  const item = await db.assetKitItem.delete({ where: { id: itemId } });
+
+  if (item.fileUrl && item.fileUrl.startsWith("/uploads/")) {
+    await unlink(path.join(process.cwd(), "public", item.fileUrl)).catch(() => {});
+  }
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "DELETE_ASSET_KIT_ITEM",
+    targetType: "AssetKitItem",
+    targetId: itemId,
+    meta: item.customLabel ?? item.key,
+  });
+
+  revalidatePath(`/admin/partners/${item.partnerId}`);
+  revalidatePath("/admin/asset-kit");
+  revalidatePath("/partner/assets");
 }

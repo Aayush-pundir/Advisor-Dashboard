@@ -236,17 +236,9 @@ export async function certifyPartnerAction(partnerId: string) {
     data: ASSET_KEYS.map((key) => ({
       partnerId: partner.id,
       key,
-      owner:
-        key === "CERTIFICATE_BADGE" || key === "FIRST_CAMPAIGN_DRAFT"
-          ? "Auto (CRM)"
-          : "Marketing Ops",
+      owner: key === "FIRST_CAMPAIGN_DRAFT" ? "Auto (CRM)" : "Marketing Ops",
       dueAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
     })),
-  });
-
-  await db.assetKitItem.update({
-    where: { partnerId_key: { partnerId: partner.id, key: "CERTIFICATE_BADGE" } },
-    data: { status: "DELIVERED", deliveredAt: new Date() },
   });
 
   await db.activityEvent.create({
@@ -484,17 +476,9 @@ export async function completeCertificationAction(partnerId: string, formData: F
     data: ASSET_KEYS.map((key) => ({
       partnerId: partner.id,
       key,
-      owner:
-        key === "CERTIFICATE_BADGE" || key === "FIRST_CAMPAIGN_DRAFT"
-          ? "Auto (CRM)"
-          : "Marketing Ops",
+      owner: key === "FIRST_CAMPAIGN_DRAFT" ? "Auto (CRM)" : "Marketing Ops",
       dueAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
     })),
-  });
-
-  await db.assetKitItem.update({
-    where: { partnerId_key: { partnerId: partner.id, key: "CERTIFICATE_BADGE" } },
-    data: { status: "DELIVERED", deliveredAt: new Date() },
   });
 
   await db.activityEvent.create({

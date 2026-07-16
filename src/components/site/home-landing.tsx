@@ -191,13 +191,6 @@ const CASE_STUDIES = [
   {
     profile: "Mid-size CA firm, multi-partner",
     city: "Delhi NCR",
-    clients: "25 clients referred, first 3 quarters",
-    acv: "₹6L average contract value",
-    earned: "₹22.5L Year-1 + building toward ₹1.3Cr+ lifetime",
-  },
-  {
-    profile: "Mid-size CA firm, multi-partner",
-    city: "Delhi NCR",
     clients: "5 clients referred, first 3 quarters",
     acv: "₹6L average contract value",
     earned: "₹4.5L Year-1 + building toward ₹26L+ lifetime",
@@ -548,6 +541,31 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
         </Reveal>
       </section>
 
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" style={{ padding: "clamp(60px,10vw,110px) clamp(20px,5vw,32px)", maxWidth: 1000, margin: "0 auto" }}>
+        <Reveal>
+          <div style={{ maxWidth: 640, margin: "0 auto clamp(40px,8vw,64px)", textAlign: "center" }}>
+            <div style={sectionLabelStyle}>How the partnership works</div>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(26px,5.6vw,38px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+              Three steps. You only own step one.
+            </h2>
+          </div>
+        </Reveal>
+        <RevealGroup style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px,1fr))", gap: 24 }}>
+          {STEPS.map((step) => (
+            <RevealItem key={step.n}>
+              <TiltCard style={{ background: "#F1EEE8", border: "1px solid rgba(27,23,20,0.1)", borderRadius: 8, padding: "34px 28px", height: "100%" }}>
+                <div style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 600, color: "#D6362B", marginBottom: 18 }}>
+                  {step.n}
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 18.5, marginBottom: 10, color: "#171310" }}>{step.title}</div>
+                <div style={{ fontSize: 15, lineHeight: 1.6, color: "rgba(27,23,20,0.65)" }}>{step.desc}</div>
+              </TiltCard>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      </section>
+
       {/* THE MISSION */}
       <section id="mission" style={{ background: "#171310", color: "#FAF9F7", padding: "clamp(56px,10vw,104px) clamp(20px,5vw,32px)" }}>
         <Reveal>
@@ -576,31 +594,6 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
             </p>
           </div>
         </Reveal>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section id="how-it-works" style={{ padding: "clamp(60px,10vw,110px) clamp(20px,5vw,32px)", maxWidth: 1000, margin: "0 auto" }}>
-        <Reveal>
-          <div style={{ maxWidth: 640, margin: "0 auto clamp(40px,8vw,64px)", textAlign: "center" }}>
-            <div style={sectionLabelStyle}>How the partnership works</div>
-            <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(26px,5.6vw,38px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
-              Three steps. You only own step one.
-            </h2>
-          </div>
-        </Reveal>
-        <RevealGroup style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px,1fr))", gap: 24 }}>
-          {STEPS.map((step) => (
-            <RevealItem key={step.n}>
-              <TiltCard style={{ background: "#F1EEE8", border: "1px solid rgba(27,23,20,0.1)", borderRadius: 8, padding: "34px 28px", height: "100%" }}>
-                <div style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 600, color: "#D6362B", marginBottom: 18 }}>
-                  {step.n}
-                </div>
-                <div style={{ fontWeight: 600, fontSize: 18.5, marginBottom: 10, color: "#171310" }}>{step.title}</div>
-                <div style={{ fontSize: 15, lineHeight: 1.6, color: "rgba(27,23,20,0.65)" }}>{step.desc}</div>
-              </TiltCard>
-            </RevealItem>
-          ))}
-        </RevealGroup>
       </section>
 
       {/* PROBLEM -> SOLUTION (from flyer) */}

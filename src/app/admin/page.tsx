@@ -132,7 +132,7 @@ export default async function AdminOverviewPage() {
             <span className="ml-1 text-sm font-normal text-muted">({queueTotal})</span>
           )}
         </h2>
-        <div className="mt-3 grid gap-4 overflow-x-auto pb-2 sm:grid-cols-2 lg:grid-flow-col lg:auto-cols-[minmax(230px,1fr)]">
+        <div className="mt-3 grid gap-4 overflow-x-auto pb-2 sm:grid-cols-2 lg:grid-flow-col lg:auto-cols-[minmax(270px,1fr)]">
           <QueueColumn title="Partner leads awaiting acceptance" emptyText="No new partner leads waiting.">
             {pendingAccept.map((p) => (
               <QueueRow

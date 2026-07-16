@@ -6,6 +6,21 @@ import { slugify, randomReferralCode } from "../src/lib/slug";
 const db = new PrismaClient();
 const PASSWORD = "omnicard123";
 
+// Demo files for delivered asset kit items — reuses existing static marketing
+// assets as stand-ins so "My Asset Kit" has something real to download.
+const DEMO_ASSET_FILES: Partial<Record<(typeof ASSET_KEYS)[number], { fileUrl: string; fileName: string; mimeType: string }>> = {
+  QR_CODE: { fileUrl: "/marketing/qr-payment-screen.png", fileName: "personal-qr-code.png", mimeType: "image/png" },
+  EXPLAINER_VIDEO: { fileUrl: "/marketing/intro-video.mp4", fileName: "explainer-video.mp4", mimeType: "video/mp4" },
+  EMAIL_SIGNATURE: { fileUrl: "/marketing/omnicard-logo.png", fileName: "email-signature.png", mimeType: "image/png" },
+  MINI_DECK: { fileUrl: "/marketing/dashboard-screenshot.png", fileName: "client-mini-deck.png", mimeType: "image/png" },
+  WHATSAPP_PACK: { fileUrl: "/marketing/qr-payment-screen.png", fileName: "whatsapp-creative-pack.png", mimeType: "image/png" },
+  LINKEDIN_KIT: { fileUrl: "/marketing/dashboard-screenshot.png", fileName: "linkedin-content-kit.png", mimeType: "image/png" },
+  SAVINGS_CALCULATOR: { fileUrl: "/marketing/dashboard-screenshot.png", fileName: "savings-calculator.png", mimeType: "image/png" },
+  LEAD_MAGNET_PDF: { fileUrl: "/marketing/dashboard-screenshot.png", fileName: "spend-leakage-audit.png", mimeType: "image/png" },
+  FIRST_CAMPAIGN_DRAFT: { fileUrl: "/marketing/qr-payment-screen.png", fileName: "first-campaign-draft.png", mimeType: "image/png" },
+  COMPLIANCE_CALENDAR: { fileUrl: "/marketing/india-coverage-map.png", fileName: "compliance-calendar-wallpaper.png", mimeType: "image/png" },
+};
+
 type SeedPartner = {
   firmName: string;
   contactName: string;
@@ -149,13 +164,17 @@ async function main() {
       });
 
       await db.assetKitItem.createMany({
-        data: ASSET_KEYS.map((key, i) => ({
-          partnerId: partner.id,
-          key,
-          status: i < ASSET_KEYS.length - 2 ? "DELIVERED" : "IN_PROGRESS",
-          owner: key === "CERTIFICATE_BADGE" || key === "FIRST_CAMPAIGN_DRAFT" ? "Auto (CRM)" : "Marketing Ops",
-          deliveredAt: i < ASSET_KEYS.length - 2 ? new Date(Date.now() - randomBetween(1, 100) * 86400000) : null,
-        })),
+        data: ASSET_KEYS.map((key, i) => {
+          const isDelivered = i < ASSET_KEYS.length - 2;
+          return {
+            partnerId: partner.id,
+            key,
+            status: isDelivered ? "DELIVERED" : "IN_PROGRESS",
+            owner: key === "FIRST_CAMPAIGN_DRAFT" ? "Auto (CRM)" : "Marketing Ops",
+            deliveredAt: isDelivered ? new Date(Date.now() - randomBetween(1, 100) * 86400000) : null,
+            ...(isDelivered ? DEMO_ASSET_FILES[key] : {}),
+          };
+        }),
       });
 
       await db.campaign.createMany({

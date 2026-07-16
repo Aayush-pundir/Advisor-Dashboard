@@ -37,15 +37,15 @@ export function QueueRow({
   badge?: React.ReactNode;
 }) {
   return (
-    <Link href={href} className="flex items-center justify-between gap-4 px-5 py-3 text-sm hover:bg-brand-light/40">
-      <div>
-        <p className="font-medium">{primary}</p>
-        {secondary && <p className="mt-0.5 text-xs text-muted">{secondary}</p>}
-      </div>
-      <div className="flex items-center gap-2">
-        {meta && <span className="text-xs text-muted">{meta}</span>}
-        {badge}
-      </div>
+    <Link href={href} className="flex flex-col gap-1 px-5 py-3 text-sm hover:bg-brand-light/40">
+      <p className="truncate font-medium">{primary}</p>
+      {secondary && <p className="truncate text-xs text-muted">{secondary}</p>}
+      {(meta || badge) && (
+        <div className="flex items-center gap-2">
+          {meta && <span className="truncate text-xs text-muted">{meta}</span>}
+          {badge}
+        </div>
+      )}
     </Link>
   );
 }

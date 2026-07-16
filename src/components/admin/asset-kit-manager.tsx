@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { ASSET_LABELS, ASSET_STATUSES, type AssetKey, type AssetStatus } from "@/lib/enums";
-import { uploadAssetKitFileAction, updateAssetKitItemAction } from "@/app/actions/asset-kit";
+import { uploadAssetKitFileAction, updateAssetKitItemAction, deleteAssetKitItemAction } from "@/app/actions/asset-kit";
 
 const assetStatusVariant: Record<AssetStatus, "neutral" | "warning" | "success"> = {
   PENDING: "neutral",
@@ -36,6 +36,7 @@ export function AssetKitManager({
 }) {
   const [isPending, startTransition] = useTransition();
   const [isUploading, startUpload] = useTransition();
+  const [isDeleting, startDelete] = useTransition();
   const uploadFormRef = useRef<HTMLFormElement>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -92,6 +93,20 @@ export function AssetKitManager({
                 Save
               </Button>
             </form>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isDeleting}
+              onClick={() => {
+                if (confirm("Delete this asset kit item? This cannot be undone.")) {
+                  startDelete(() => deleteAssetKitItemAction(item.id));
+                }
+              }}
+              className="text-rose-600 hover:bg-rose-50"
+            >
+              Delete
+            </Button>
           </div>
         ))}
         {items.length === 0 && <p className="py-6 text-center text-muted">No asset kit items yet.</p>}

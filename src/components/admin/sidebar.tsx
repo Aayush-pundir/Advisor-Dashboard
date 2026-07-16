@@ -11,7 +11,7 @@ const links = [
   { href: "/admin/leads", label: "Lead-to-Revenue" },
   { href: "/admin/ops", label: "Ops Efficiency" },
   { href: "/admin/campaigns", label: "Campaigns" },
-  { href: "/admin/landing-content", label: "Co-Landing Content" },
+  { href: "/admin/asset-kit", label: "Asset Kit" },
   { href: "/admin/commissions", label: "Advisory Fees Ledger" },
   { href: "/admin/support", label: "Support Tickets" },
 ];
