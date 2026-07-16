@@ -15,6 +15,7 @@ export default async function PartnerAssetsPage() {
   const session = await getSession();
   const items = await db.assetKitItem.findMany({
     where: { partnerId: session!.partnerId! },
+    orderBy: [{ deliveredAt: "desc" }, { dueAt: "asc" }],
   });
 
   const delivered = items.filter((i) => i.status === "DELIVERED").length;
@@ -29,12 +30,22 @@ export default async function PartnerAssetsPage() {
 
       <Card className="mt-6 divide-y divide-border">
         {items.map((item) => (
-          <div key={item.id} className="flex items-center justify-between p-4">
+          <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
             <div>
               <p className="text-sm font-medium">
-                {ASSET_LABELS[item.key as AssetKey]}
+                {item.customLabel ?? ASSET_LABELS[item.key as AssetKey] ?? item.key}
               </p>
-              <p className="text-xs text-muted">Owner: {item.owner}</p>
+              {item.note && <p className="mt-0.5 text-xs text-muted">{item.note}</p>}
+              <p className="mt-0.5 text-xs text-muted">Owner: {item.owner}</p>
+              {item.fileUrl && (
+                <a
+                  href={item.fileUrl}
+                  download={item.fileName ?? undefined}
+                  className="mt-1 inline-block text-xs font-medium text-brand-dark hover:underline"
+                >
+                  Download {item.fileName ?? "file"} &#8595;
+                </a>
+              )}
             </div>
             <div className="text-right">
               <Badge variant={statusVariant[item.status as AssetStatus]}>

@@ -45,7 +45,21 @@ export function PartnerPicker({ partners }: { partners: { id: string; firmName: 
         ))}
         {filtered.length === 0 && <p className="px-3 py-2 text-xs text-muted">No partners match.</p>}
       </div>
-      {selected.size > 0 && <p className="mt-1 text-xs text-muted">{selected.size} selected</p>}
+      <div className="mt-1 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setSelected(new Set(partners.map((p) => p.id)))}
+          className="text-xs font-medium text-brand-dark hover:underline"
+        >
+          Select all {partners.length}
+        </button>
+        {selected.size > 0 && (
+          <button type="button" onClick={() => setSelected(new Set())} className="text-xs text-muted hover:underline">
+            Clear
+          </button>
+        )}
+        {selected.size > 0 && <span className="text-xs text-muted">{selected.size} selected</span>}
+      </div>
     </div>
   );
 }

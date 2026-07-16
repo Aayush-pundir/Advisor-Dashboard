@@ -212,6 +212,13 @@ model AssetKitItem {
   dueAt       DateTime?
   deliveredAt DateTime?
 
+  // Actual uploaded file — any format (image, PDF, video, audio, etc.),
+  // stored under public/uploads/assets since there's no object storage.
+  fileUrl  String?
+  fileName String? // original filename, shown to the advisor
+  mimeType String?
+  note     String? // free-text note from admin/marketing shown alongside the file
+
   @@unique([partnerId, key])
 }
 
