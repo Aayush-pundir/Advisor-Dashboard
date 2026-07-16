@@ -135,27 +135,39 @@ const CREDENTIALS = [
 const FAQS = [
   {
     q: "Is there any cost or investment required to become an Advisory Partner?",
-    a: "None. There's no fee to join, no minimum commitment, and no liability on your firm at any point — you make the introduction, OmniCard runs everything else.",
+    a: "There's no signup fee and no minimum commitment. Your liability is limited to your own breach, fraud, or wilful misconduct, and capped at 12 months of Advisory Fees — a genuine referral carries no financial risk to your firm.",
   },
   {
     q: "How much can I earn per client I refer?",
-    a: "15% of the client's Year-1 contract value, plus 5% trailing every year they stay active on the platform — use the earnings calculator above to see it for your own client mix.",
+    a: "15% of the client's Year-1 contract value, plus 5% every year they stay active thereafter — paid within 45 days of OmniCard realising the corresponding revenue, exclusive of GST. Use the earnings calculator above to see it for your own client mix.",
+  },
+  {
+    q: "Is this a passive referral, or do I have ongoing responsibilities?",
+    a: "It's genuine advisory work, not a passive referral. Beyond the introduction, you assess fit, advise the client on adopting the platform, coordinate with OmniCard's onboarding team for a smooth go-live, and stay available for basic client queries through their first year.",
   },
   {
     q: "What does onboarding and certification involve?",
-    a: "A short demo session, after which your firm is certified as an Implementation Advisor and your full asset kit (landing page, QR code, WhatsApp pack, mini-deck) is delivered within 48 hours.",
+    a: "After your Implementation Advisor Agreement is countersigned, a short demo session certifies your firm and your asset kit (landing page, QR code, WhatsApp pack, mini-deck) is delivered within 48 hours.",
   },
   {
-    q: "What if I introduce a client another advisor is already talking to?",
-    a: "Register the deal from your dashboard and it's protected under your attribution for 90 days — if another partner tries to register the same prospect, they're notified instead of silently overlapping.",
-  },
-  {
-    q: "Do I need to handle onboarding, KYC, or client support myself?",
-    a: "No — OmniCard's team runs the demo, onboarding, KYC, card issuance and ongoing support. Your role stops at the warm introduction; the account management is ours.",
+    q: "What if I introduce a client another advisor already has a relationship with?",
+    a: "Advisory Fees go to whichever advisor first formally registers the client with OmniCard — our onboarding records are final in a dispute. Separately, if a client contact was already captured by another advisor in the last 90 days, our system flags it as a channel conflict automatically rather than letting it silently overlap.",
   },
   {
     q: "How and when do I get paid?",
-    a: "Commissions are credited automatically to your OmniCard wallet the moment a client closes, and every trailing renewal after that — visible in real time on your partner dashboard.",
+    a: "Advisory Fees are payable within 45 days of OmniCard realising the corresponding revenue, exclusive of GST (charged separately if you're GST-registered) and subject to applicable TDS. You get a quarterly statement of clients introduced, contract value, and fees payable — or real-time dashboard access once you've onboarded 10 or more clients.",
+  },
+  {
+    q: "Is this exclusive — can I still work with other platforms?",
+    a: "No exclusivity. You're free to advise your clients on, or refer them to, other platforms or service providers alongside OmniCard.",
+  },
+  {
+    q: "What happens to my Advisory Fees if I want to leave the program?",
+    a: "The agreement runs 12 months and auto-renews unless either side gives 30 days' notice. Fees on clients you've already onboarded keep paying out for as long as they stay active with OmniCard, even after you exit. For 6 months post-exit, you can't help an onboarded client move to a competing platform.",
+  },
+  {
+    q: "What about KYC and data handling for the clients I introduce?",
+    a: "Every introduced business goes through OmniCard's standard KYC/AML checks, and both sides handle personal data under the Digital Personal Data Protection Act, 2023 — you shouldn't store or share client data beyond what your advisory role needs.",
   },
 ];
 
