@@ -4,11 +4,55 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getAuthedUser, hashPassword } from "@/lib/auth";
 import { randomBytes } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
 
 async function requirePartnerOwner() {
   const user = await getAuthedUser();
   if (!user || !user.partnerId) throw new Error("UNAUTHENTICATED");
   return user;
+}
+
+const ALLOWED_LOGO_TYPES: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/svg+xml": "svg",
+  "image/webp": "webp",
+};
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
+
+/** Firm logo shown on the co-branded landing page — stored under
+ * public/uploads/logos since this app has no external object storage. */
+export async function updateLogoAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const user = await requirePartnerOwner();
+
+  const file = formData.get("logo");
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "Please choose an image file." };
+  }
+  const ext = ALLOWED_LOGO_TYPES[file.type];
+  if (!ext) {
+    return { ok: false, error: "Unsupported file type — use PNG, JPG, WEBP or SVG." };
+  }
+  if (file.size > MAX_LOGO_BYTES) {
+    return { ok: false, error: "Logo must be under 2MB." };
+  }
+
+  const dir = path.join(process.cwd(), "public", "uploads", "logos");
+  await mkdir(dir, { recursive: true });
+  const filename = `${user.partnerId}.${ext}`;
+  const bytes = Buffer.from(await file.arrayBuffer());
+  await writeFile(path.join(dir, filename), bytes);
+
+  const partner = await db.partner.update({
+    where: { id: user.partnerId! },
+    data: { logoUrl: `/uploads/logos/${filename}?v=${Date.now()}` },
+  });
+
+  revalidatePath("/partner/settings");
+  revalidatePath(`/admin/partners/${user.partnerId}`);
+  revalidatePath(`/advisor/${partner.slug}`);
+  return { ok: true };
 }
 
 /** Advisor profile — firm/contact details shown on their microsite & MOU. */

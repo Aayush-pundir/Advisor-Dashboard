@@ -11,6 +11,7 @@ import { ApiKeyPanel } from "@/components/partner/api-key-panel";
 import { WebhookForm } from "@/components/partner/webhook-form";
 import { InviteTeammateForm } from "@/components/partner/invite-teammate-form";
 import { RemoveTeammateButton } from "@/components/partner/remove-teammate-button";
+import { LogoUploadForm } from "@/components/partner/logo-upload-form";
 
 export default async function PartnerSettingsPage({
   searchParams,
@@ -53,6 +54,18 @@ export default async function PartnerSettingsPage({
               <Button type="submit">Save profile</Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Branding</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm text-muted">
+            Shown on your co-branded landing page — falls back to your firm name if not uploaded.
+          </p>
+          <LogoUploadForm currentLogoUrl={partner.logoUrl} />
         </CardContent>
       </Card>
 

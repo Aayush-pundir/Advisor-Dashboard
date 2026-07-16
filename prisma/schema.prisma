@@ -122,6 +122,7 @@ model Partner {
   icaiVerified Boolean   @default(false)
   msaSignedAt  DateTime?
   designation  String? // signatory designation captured on the MOU
+  logoUrl      String? // firm logo, shown on the co-branded landing page
 
   stage              String    @default("LEAD")
   acceptedAt         DateTime? // admin accepted the lead & scheduled an intro call
