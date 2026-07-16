@@ -5,13 +5,27 @@ import type { UserRole } from "@/lib/enums";
 import { toCsv } from "@/lib/csv";
 import { maskPhone, maskEmail } from "@/lib/utils";
 
-export async function GET() {
+export async function GET(request: Request) {
   const actor = await getAuthedUser();
   if (!actor || !canManageLeads(actor.role as UserRole)) {
     return new Response("Forbidden", { status: 403 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const stage = searchParams.get("stage") || undefined;
+  const source = searchParams.get("source") || undefined;
+  const category = searchParams.get("category") || undefined;
+  const assignedToId = searchParams.get("assignedToId") || undefined;
+  const partnerId = searchParams.get("partnerId") || undefined;
+
   const leads = await db.lead.findMany({
+    where: {
+      ...(stage ? { stage } : {}),
+      ...(source ? { source } : {}),
+      ...(category ? { category } : {}),
+      ...(assignedToId ? { assignedToId: assignedToId === "UNASSIGNED" ? null : assignedToId } : {}),
+      ...(partnerId ? { partnerId } : {}),
+    },
     include: { partner: { select: { firmName: true } }, assignedTo: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
   });

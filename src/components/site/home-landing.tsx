@@ -165,9 +165,9 @@ const CASE_STUDIES = [
   {
     profile: "4-partner tax & audit firm",
     city: "Pune",
-    clients: "8 clients referred, Year 1",
+    clients: "20 clients referred, Year 1",
     acv: "₹4L average contract value",
-    earned: "₹4.8L Year-1 + building toward ₹28L+ lifetime",
+    earned: "₹12L Year-1 + building toward ₹70L+ lifetime",
   },
   {
     profile: "Boutique GST compliance practice",
@@ -182,6 +182,13 @@ const CASE_STUDIES = [
     clients: "25 clients referred, first 3 quarters",
     acv: "₹6L average contract value",
     earned: "₹22.5L Year-1 + building toward ₹1.3Cr+ lifetime",
+  },
+  {
+    profile: "Mid-size CA firm, multi-partner",
+    city: "Delhi NCR",
+    clients: "5 clients referred, first 3 quarters",
+    acv: "₹6L average contract value",
+    earned: "₹4.5L Year-1 + building toward ₹26L+ lifetime",
   },
 ];
 
@@ -559,6 +566,31 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
         </Reveal>
       </section>
 
+      {/* HOW IT WORKS */}
+      <section id="how-it-works" style={{ padding: "clamp(60px,10vw,110px) clamp(20px,5vw,32px)", maxWidth: 1000, margin: "0 auto" }}>
+        <Reveal>
+          <div style={{ maxWidth: 640, margin: "0 auto clamp(40px,8vw,64px)", textAlign: "center" }}>
+            <div style={sectionLabelStyle}>How the partnership works</div>
+            <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(26px,5.6vw,38px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
+              Three steps. You only own step one.
+            </h2>
+          </div>
+        </Reveal>
+        <RevealGroup style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px,1fr))", gap: 24 }}>
+          {STEPS.map((step) => (
+            <RevealItem key={step.n}>
+              <TiltCard style={{ background: "#F1EEE8", border: "1px solid rgba(27,23,20,0.1)", borderRadius: 8, padding: "34px 28px", height: "100%" }}>
+                <div style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 600, color: "#D6362B", marginBottom: 18 }}>
+                  {step.n}
+                </div>
+                <div style={{ fontWeight: 600, fontSize: 18.5, marginBottom: 10, color: "#171310" }}>{step.title}</div>
+                <div style={{ fontSize: 15, lineHeight: 1.6, color: "rgba(27,23,20,0.65)" }}>{step.desc}</div>
+              </TiltCard>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      </section>
+
       {/* PROBLEM -> SOLUTION (from flyer) */}
       <section style={{ background: "#171310", color: "#FAF9F7", padding: "clamp(56px,10vw,100px) clamp(20px,5vw,32px)" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
@@ -756,6 +788,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
                 padding: "clamp(24px,5vw,34px)",
               }}
             >
+              <div style={sectionLabelStyle}>Why should you partner</div>
               <div style={{ fontSize: 15.5, fontWeight: 600, color: "#171310", marginBottom: 20, fontFamily: DISPLAY }}>
                 Partner terms, at a glance
               </div>
@@ -812,17 +845,17 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
             <div style={{ maxWidth: 640, margin: "0 auto clamp(36px,7vw,56px)", textAlign: "center" }}>
               <div style={sectionLabelStyle}>What this looks like in practice</div>
               <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(24px,5vw,36px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
-                Real advisor earnings
+                Earning for our few advisors
               </h2>
               <p style={{ marginTop: 14, fontSize: 14.5, color: "rgba(27,23,20,0.6)" }}>
                 Representative examples using the same commission model as the calculator above — actual earnings
-                depend on your client mix and contract values.
+                depend on your client mix and contract values. These are the earnings of few of the advisors working with us.
               </p>
             </div>
           </Reveal>
           <RevealGroup style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px,1fr))", gap: 20 }}>
-            {CASE_STUDIES.map((c) => (
-              <RevealItem key={c.profile}>
+            {CASE_STUDIES.map((c, i) => (
+              <RevealItem key={`${c.profile}-${i}`}>
                 <TiltCard
                   style={{
                     background: "#FAF9F7",
@@ -965,7 +998,7 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
         <section style={{ padding: "clamp(56px,9vw,96px) clamp(20px,5vw,32px)", maxWidth: 760, margin: "0 auto" }}>
           <Reveal>
             <div style={{ textAlign: "center", marginBottom: 40 }}>
-              <div style={sectionLabelStyle}>Growing every month</div>
+              <div style={sectionLabelStyle}>Growing every day</div>
               <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(24px,5vw,34px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
                 Where our Advisory Partners operate
               </h2>
@@ -1010,31 +1043,6 @@ export function HomeLanding({ stateCoverage = [] }: { stateCoverage?: { state: s
             </div>
           </div>
         </Reveal>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section id="how-it-works" style={{ padding: "clamp(60px,10vw,110px) clamp(20px,5vw,32px)", maxWidth: 1000, margin: "0 auto" }}>
-        <Reveal>
-          <div style={{ maxWidth: 640, margin: "0 auto clamp(40px,8vw,64px)", textAlign: "center" }}>
-            <div style={sectionLabelStyle}>How the partnership works</div>
-            <h2 style={{ fontFamily: DISPLAY, fontSize: "clamp(26px,5.6vw,38px)", fontWeight: 600, margin: 0, letterSpacing: "-0.01em", color: "#171310" }}>
-              Three steps. You only own step one.
-            </h2>
-          </div>
-        </Reveal>
-        <RevealGroup style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px,1fr))", gap: 24 }}>
-          {STEPS.map((step) => (
-            <RevealItem key={step.n}>
-              <TiltCard style={{ background: "#F1EEE8", border: "1px solid rgba(27,23,20,0.1)", borderRadius: 8, padding: "34px 28px", height: "100%" }}>
-                <div style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 600, color: "#D6362B", marginBottom: 18 }}>
-                  {step.n}
-                </div>
-                <div style={{ fontWeight: 600, fontSize: 18.5, marginBottom: 10, color: "#171310" }}>{step.title}</div>
-                <div style={{ fontSize: 15, lineHeight: 1.6, color: "rgba(27,23,20,0.65)" }}>{step.desc}</div>
-              </TiltCard>
-            </RevealItem>
-          ))}
-        </RevealGroup>
       </section>
 
       {/* FAQ */}

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { YEAR1_RATE, TRAILING_RATE, BADGE_TIER_META } from "@/lib/enums";
+import { YEAR1_RATE, TRAILING_RATE, BADGE_TIER_META, REFERRAL_HAMPER_VALUE } from "@/lib/enums";
 import type { LeadStage, BadgeTier, UserRole } from "@/lib/enums";
 import { notifyPartnerUsers } from "@/lib/notify";
 import { formatINR, quarterLabel, quarterStart } from "@/lib/utils";
@@ -155,6 +155,7 @@ export async function advanceLeadStageAction(
     }
 
     await checkMilestoneBadges(lead.partnerId);
+    await checkReferralBonus(lead.partnerId);
 
     const total = Math.round(lead.dealValue * (YEAR1_RATE + TRAILING_RATE));
     await notifyPartnerUsers(lead.partnerId, {
@@ -280,4 +281,35 @@ async function checkMilestoneBadges(partnerId: string) {
       href: "/partner/achievements",
     });
   }
+}
+
+/** Both the referring and the referred advisor get a surprise hamper the
+ * moment the referred advisor's first client activates — fires once, on
+ * that advisor's first-ever closed-won lead. */
+async function checkReferralBonus(partnerId: string) {
+  const partner = await db.partner.findUniqueOrThrow({ where: { id: partnerId } });
+  if (!partner.referredById) return;
+
+  const closedWonCount = await db.lead.count({ where: { partnerId, stage: "CLOSED_WON" } });
+  if (closedWonCount !== 1) return;
+
+  const existing = await db.referralBonus.findFirst({
+    where: { referrerId: partner.referredById, referredId: partner.id },
+  });
+  if (existing) return;
+
+  await db.referralBonus.create({
+    data: { referrerId: partner.referredById, referredId: partner.id, amount: REFERRAL_HAMPER_VALUE, status: "PENDING" },
+  });
+
+  await notifyPartnerUsers(partner.referredById, {
+    type: "REFERRAL_HAMPER_EARNED",
+    title: `${partner.firmName} closed their first client — you've both earned a surprise hamper!`,
+    href: "/partner/achievements?tab=refer",
+  });
+  await notifyPartnerUsers(partner.id, {
+    type: "REFERRAL_HAMPER_EARNED",
+    title: "You and the advisor who referred you have each earned a surprise hamper on your first client activation!",
+    href: "/partner/achievements?tab=refer",
+  });
 }

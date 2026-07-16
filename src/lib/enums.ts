@@ -200,6 +200,11 @@ export function icpTotal(p: {
 export const YEAR1_RATE = 0.15;
 export const TRAILING_RATE = 0.05;
 
+/** Indicative value of the surprise hamper both the referring and the
+ * referred advisor receive when the referred advisor's first client
+ * activates — not a cash payout, tracked on ReferralBonus for MIS purposes. */
+export const REFERRAL_HAMPER_VALUE = 5000;
+
 /**
  * Default annual client churn used for LTV-based earnings projections.
  * Trailing 5% is paid every year a client stays active, so a client's
@@ -244,12 +249,12 @@ export const CERT_LEVEL_LABELS: Record<CertLevel, string> = {
 };
 
 export const CERT_MODULES = [
-  { key: "PRODUCT_OVERVIEW", label: "OmniCard product overview", level: "DEMO" },
-  { key: "OBJECTION_HANDLING", label: "Client objection handling", level: "DEMO" },
-  { key: "ADVANCED_PRODUCT", label: "Advanced product & pricing", level: "PRODUCT" },
-  { key: "COMPLIANCE_BASICS", label: "Compliance & KYC basics", level: "PRODUCT" },
+  { key: "PRODUCT_OVERVIEW", label: "OmniCard Overview", level: "DEMO" },
+  { key: "OBJECTION_HANDLING", label: "Product Demos", level: "DEMO" },
+  { key: "ADVANCED_PRODUCT", label: "Advanced Products", level: "PRODUCT" },
+  { key: "COMPLIANCE_BASICS", label: "Compliance & KYC Basics", level: "PRODUCT" },
   { key: "SALES_PLAYBOOK", label: "Sales playbook & pitch deck", level: "SALES" },
-  { key: "CRM_MASTERY", label: "Advisor CRM mastery", level: "SALES" },
+  { key: "CRM_MASTERY", label: "Advisor CRM Module", level: "SALES" },
 ] as const;
 export type CertModuleKey = (typeof CERT_MODULES)[number]["key"];
 

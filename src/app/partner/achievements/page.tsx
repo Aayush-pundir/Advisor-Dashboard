@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { cn, formatDate, formatINR, quarterStart } from "@/lib/utils";
+import { cn, formatDate, formatINR, quarterStart, maskFirmName } from "@/lib/utils";
 import {
   BADGE_TIER_META,
   CERT_LEVELS,
@@ -155,7 +155,7 @@ async function LeaderboardTab() {
               <span className="w-6 text-center text-sm font-semibold text-muted">{i + 1}</span>
               <div>
                 <p className="text-sm font-medium">
-                  {p.firmName}
+                  {p.id === session?.partnerId ? p.firmName : maskFirmName(p.firmName)}
                   {p.id === session?.partnerId && <span className="ml-2 text-xs font-normal text-brand">(you)</span>}
                 </p>
                 <p className="text-xs text-muted">{p.city}</p>

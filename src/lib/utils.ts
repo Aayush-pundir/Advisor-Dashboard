@@ -35,6 +35,13 @@ export function maskEmail(email: string) {
   return `${local.slice(0, 1)}${"*".repeat(Math.max(local.length - 1, 3))}@${domain}`;
 }
 
+/** Partially masks a firm name for the leaderboard, e.g. "Sharma & Associates" -> "Sharma & A••••••••••". */
+export function maskFirmName(name: string) {
+  if (name.length <= 4) return `${name.slice(0, 1)}${"•".repeat(Math.max(name.length - 1, 3))}`;
+  const visible = name.slice(0, Math.ceil(name.length / 2));
+  return `${visible}${"•".repeat(name.length - visible.length)}`;
+}
+
 /** Calendar-quarter label, e.g. "2026-Q3" — shared by badge milestones and the leaderboard. */
 export function quarterLabel(d: Date) {
   const q = Math.floor(d.getMonth() / 3) + 1;

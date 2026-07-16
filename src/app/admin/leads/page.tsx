@@ -2,15 +2,16 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatINR, formatDate, maskPhone, maskEmail } from "@/lib/utils";
-import { LEAD_STAGES, LEAD_STAGE_LABELS } from "@/lib/enums";
+import { LEAD_STAGES, LEAD_STAGE_LABELS, LEAD_SOURCES } from "@/lib/enums";
 import type { LeadStage, UserRole } from "@/lib/enums";
 import { LeadStageSelect } from "@/components/admin/lead-stage-select";
 import { getAuthedUser } from "@/lib/auth";
 import { canManageLeads } from "@/lib/permissions";
 import { RevealPii } from "@/components/admin/reveal-pii";
 import { ReassignLeadSelect } from "@/components/admin/reassign-lead-select";
-import { LEAD_CONFLICT_PROTECTION_DAYS, LEAD_CATEGORY_LABELS, type LeadCategory } from "@/lib/enums";
+import { LEAD_CONFLICT_PROTECTION_DAYS, LEAD_CATEGORIES, LEAD_CATEGORY_LABELS, type LeadCategory } from "@/lib/enums";
 import { conflictProtectionCutoff } from "@/lib/lead-conflict";
 import { CsvExportButton } from "@/components/admin/csv-export-button";
 import { cn } from "@/lib/utils";
@@ -21,20 +22,72 @@ import { LeadCommercialsForm } from "@/components/admin/lead-commercials-form";
 export default async function AdminLeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; view?: string }>;
+  searchParams: Promise<{
+    sort?: string;
+    view?: string;
+    stage?: string;
+    source?: string;
+    category?: string;
+    assignedToId?: string;
+    partnerId?: string;
+  }>;
 }) {
-  const { sort, view } = await searchParams;
+  const { sort, view, stage, source, category, assignedToId, partnerId } = await searchParams;
   const activeView = view === "kanban" ? "kanban" : "table";
 
-  const [leads, actor, reps] = await Promise.all([
+  const where = {
+    ...(stage ? { stage } : {}),
+    ...(source ? { source } : {}),
+    ...(category ? { category } : {}),
+    ...(assignedToId ? { assignedToId: assignedToId === "UNASSIGNED" ? null : assignedToId } : {}),
+    ...(partnerId ? { partnerId } : {}),
+  };
+
+  const [leads, actor, reps, partners] = await Promise.all([
     db.lead.findMany({
+      where,
       include: { partner: { select: { firmName: true } }, assignedTo: { select: { name: true } } },
       orderBy: sort === "score" ? { score: "desc" } : { createdAt: "desc" },
     }),
     getAuthedUser(),
     db.user.findMany({ where: { role: "OMNICARD_TEAM", active: true, isSalesRep: true }, select: { id: true, name: true } }),
+    db.partner.findMany({ select: { id: true, firmName: true }, orderBy: { firmName: "asc" } }),
   ]);
   const canManage = actor ? canManageLeads(actor.role as UserRole) : false;
+
+  const hasFilters = !!(stage || source || category || assignedToId || partnerId);
+  const qs = new URLSearchParams();
+  if (sort) qs.set("sort", sort);
+  if (view) qs.set("view", view);
+  if (stage) qs.set("stage", stage);
+  if (source) qs.set("source", source);
+  if (category) qs.set("category", category);
+  if (assignedToId) qs.set("assignedToId", assignedToId);
+  if (partnerId) qs.set("partnerId", partnerId);
+  const clearHref = `/admin/leads${view ? `?view=${view}` : ""}`;
+
+  const filterQs = new URLSearchParams();
+  if (stage) filterQs.set("stage", stage);
+  if (source) filterQs.set("source", source);
+  if (category) filterQs.set("category", category);
+  if (assignedToId) filterQs.set("assignedToId", assignedToId);
+  if (partnerId) filterQs.set("partnerId", partnerId);
+
+  function tabHref(targetView: "table" | "kanban") {
+    const p = new URLSearchParams(filterQs);
+    if (targetView === "kanban") p.set("view", "kanban");
+    if (sort === "score") p.set("sort", "score");
+    const s = p.toString();
+    return `/admin/leads${s ? `?${s}` : ""}`;
+  }
+
+  function sortHref(bySort: boolean) {
+    const p = new URLSearchParams(filterQs);
+    if (view) p.set("view", view);
+    if (bySort) p.set("sort", "score");
+    const s = p.toString();
+    return `/admin/leads${s ? `?${s}` : ""}`;
+  }
 
   const protectionCutoff = conflictProtectionCutoff();
   const phonePartners = new Map<string, Set<string>>();
@@ -61,13 +114,84 @@ export default async function AdminLeadsPage({
             channel conflict automatically.
           </p>
         </div>
-        {canManage && <CsvExportButton href="/admin/leads/export" />}
+        {canManage && <CsvExportButton href={`/admin/leads/export${qs.toString() ? `?${qs.toString()}` : ""}`} />}
       </div>
+
+      <form method="GET" className="mt-4 flex flex-wrap items-end gap-3">
+        {view && <input type="hidden" name="view" value={view} />}
+        {sort && <input type="hidden" name="sort" value={sort} />}
+        <div>
+          <label className="block text-xs font-medium text-muted">Stage</label>
+          <select name="stage" defaultValue={stage ?? ""} className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand">
+            <option value="">All stages</option>
+            {LEAD_STAGES.map((s) => (
+              <option key={s} value={s}>
+                {LEAD_STAGE_LABELS[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted">Source</label>
+          <select name="source" defaultValue={source ?? ""} className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand">
+            <option value="">All sources</option>
+            {LEAD_SOURCES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted">Category</label>
+          <select name="category" defaultValue={category ?? ""} className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand">
+            <option value="">All categories</option>
+            {LEAD_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {LEAD_CATEGORY_LABELS[c]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted">Assigned to</label>
+          <select name="assignedToId" defaultValue={assignedToId ?? ""} className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand">
+            <option value="">Everyone</option>
+            <option value="UNASSIGNED">Unassigned</option>
+            {reps.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-muted">Partner</label>
+          <select name="partnerId" defaultValue={partnerId ?? ""} className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand">
+            <option value="">All partners</option>
+            {partners.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.firmName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button type="submit" size="sm">
+          Apply filters
+        </Button>
+        {hasFilters && (
+          <Link href={clearHref} className="text-sm text-muted hover:text-brand hover:underline">
+            Clear
+          </Link>
+        )}
+      </form>
+
+      <p className="mt-3 text-xs text-muted">{leads.length} lead(s)</p>
 
       <div className="mt-4 flex items-center justify-between gap-4 border-b border-border">
         <div className="flex gap-1">
           <Link
-            href={sort === "score" ? "/admin/leads?sort=score" : "/admin/leads"}
+            href={tabHref("table")}
             className={cn(
               "border-b-2 px-4 py-2 text-sm font-medium",
               activeView === "table" ? "border-brand text-brand-dark" : "border-transparent text-muted hover:text-foreground",
@@ -76,7 +200,7 @@ export default async function AdminLeadsPage({
             Table
           </Link>
           <Link
-            href={sort === "score" ? "/admin/leads?view=kanban&sort=score" : "/admin/leads?view=kanban"}
+            href={tabHref("kanban")}
             className={cn(
               "border-b-2 px-4 py-2 text-sm font-medium",
               activeView === "kanban" ? "border-brand text-brand-dark" : "border-transparent text-muted hover:text-foreground",
@@ -86,10 +210,7 @@ export default async function AdminLeadsPage({
           </Link>
         </div>
         {activeView === "table" && (
-          <Link
-            href={sort === "score" ? "/admin/leads" : "/admin/leads?sort=score"}
-            className="pb-2 text-xs text-muted hover:text-brand hover:underline"
-          >
+          <Link href={sortHref(sort !== "score")} className="pb-2 text-xs text-muted hover:text-brand hover:underline">
             {sort === "score" ? "Sort by newest" : "Sort by score"}
           </Link>
         )}

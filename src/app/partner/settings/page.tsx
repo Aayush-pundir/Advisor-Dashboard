@@ -47,7 +47,7 @@ export default async function PartnerSettingsPage({
             <Field label="Firm name" name="firmName" defaultValue={partner.firmName} required />
             <Field label="Contact name" name="contactName" defaultValue={partner.contactName} required />
             <Field label="Phone" name="phone" defaultValue={partner.phone} required />
-            <Field label="ICAI membership no." name="icaiNumber" defaultValue={partner.icaiNumber ?? ""} />
+            <Field label="Membership No." name="icaiNumber" defaultValue={partner.icaiNumber ?? ""} />
             <Field label="City" name="city" defaultValue={partner.city} required />
             <Field label="State" name="state" defaultValue={partner.state} required />
             <div className="sm:col-span-2">

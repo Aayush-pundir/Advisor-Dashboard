@@ -69,6 +69,7 @@ export default async function LoginPage({
         <div className="mt-6 rounded-lg bg-background p-3 text-xs text-muted">
           <p className="font-medium text-foreground">Demo accounts</p>
           <p>Admin: admin@omnicard.in / omnicard123</p>
+          <p>OmniCard Team: ops@omnicard.in / omnicard123</p>
           <p>CA Partner: priya.sharma@camail.in / omnicard123</p>
         </div>
       </div>

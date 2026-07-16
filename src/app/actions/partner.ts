@@ -26,6 +26,16 @@ function generateTempPassword() {
   return `omc-${Math.random().toString(36).slice(2, 8)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
+/** Looks up the referring partner by the code a new advisor entered at
+ * signup — invalid/blank codes are ignored silently rather than blocking
+ * signup. */
+async function resolveReferrer(formData: FormData): Promise<string | null> {
+  const code = String(formData.get("referralCode") ?? "").trim();
+  if (!code) return null;
+  const referrer = await db.partner.findUnique({ where: { referralCode: code } });
+  return referrer?.id ?? null;
+}
+
 /**
  * Creates the partner's login the moment they submit interest (MOU or
  * signup form) — not at certification — so they can sign in immediately
@@ -73,6 +83,8 @@ export async function signupPartnerAction(formData: FormData) {
   const slugTaken = await db.partner.findUnique({ where: { slug } });
   if (slugTaken) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
+  const referredById = await resolveReferrer(formData);
+
   const partner = await db.partner.create({
     data: {
       firmName,
@@ -83,6 +95,7 @@ export async function signupPartnerAction(formData: FormData) {
       state,
       icaiNumber,
       slug,
+      referredById,
       referralCode: randomReferralCode(firmName),
       stage: "LEAD",
     },
@@ -128,6 +141,8 @@ export async function signMouAction(
   const slugTaken = await db.partner.findUnique({ where: { slug } });
   if (slugTaken) slug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
 
+  const referredById = await resolveReferrer(formData);
+
   const partner = await db.partner.create({
     data: {
       firmName,
@@ -139,6 +154,7 @@ export async function signMouAction(
       icaiNumber,
       slug,
       designation: designation || "Authorized Signatory",
+      referredById,
       referralCode: randomReferralCode(firmName),
       stage: "LEAD",
       mouVersion: CURRENT_MOU_VERSION,

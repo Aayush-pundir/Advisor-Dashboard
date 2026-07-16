@@ -11,9 +11,9 @@ const ERRORS: Record<string, string> = {
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ref?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, ref } = await searchParams;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -33,7 +33,8 @@ export default async function SignupPage({
             <Field label="Phone" name="phone" required />
             <Field label="City" name="city" required />
             <Field label="State" name="state" required />
-            <Field label="ICAI membership no. (optional)" name="icaiNumber" />
+            <Field label="Membership No. (optional)" name="icaiNumber" />
+            <Field label="Referral code (optional)" name="referralCode" defaultValue={ref} />
             {error && (
               <p className="sm:col-span-2 text-sm text-rose-600">
                 {ERRORS[error] ?? "Something went wrong. Please try again."}
@@ -54,11 +55,13 @@ function Field({
   name,
   type = "text",
   required,
+  defaultValue,
 }: {
   label: string;
   name: string;
   type?: string;
   required?: boolean;
+  defaultValue?: string;
 }) {
   return (
     <label className="text-sm">
@@ -70,8 +73,12 @@ function Field({
         name={name}
         type={type}
         required={required}
+        defaultValue={defaultValue}
         className="mt-1 w-full rounded-lg border border-border bg-transparent px-3 py-2 outline-none focus:border-brand"
       />
+      {name === "referralCode" && (
+        <span className="mt-1 block text-xs text-muted">Referred by another CA? You&apos;ll both get a surprise hamper on your first client.</span>
+      )}
     </label>
   );
 }

@@ -132,6 +132,8 @@ export function EarningsCalculator() {
         At 10% annual churn, a client stays active for ~{tenureYears.toFixed(0)}{" "}
         years on average — Year-1 fee is auto-credited on go-live, trailing
         fees credit every year the client renews.
+        <br />
+        Note: Calculated considering a 10% churn.
       </p>
     </div>
   );

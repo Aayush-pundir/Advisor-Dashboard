@@ -160,9 +160,9 @@ async function main() {
 
       await db.campaign.createMany({
         data: [
-          { partnerId: partner.id, type: "EMAIL", title: `${f.firmName} — Spend Leakage Audit Email`, status: "SENT", sentAt: new Date(), approvedAt: new Date() },
-          { partnerId: partner.id, type: "WHATSAPP", title: `${f.firmName} — WhatsApp Nudge Pack`, status: "PENDING_APPROVAL" },
-          { partnerId: partner.id, type: "NEWSLETTER", title: `${f.firmName} — Monthly Practice Newsletter`, status: "APPROVED", approvedAt: new Date() },
+          { partnerId: partner.id, type: "EMAIL", title: "Spend Leakage Audit Email", status: "SENT", sentAt: new Date(), approvedAt: new Date() },
+          { partnerId: partner.id, type: "WHATSAPP", title: "WhatsApp Nudge Pack", status: "PENDING_APPROVAL" },
+          { partnerId: partner.id, type: "NEWSLETTER", title: "Monthly Practice Newsletter", status: "APPROVED", approvedAt: new Date() },
         ],
       });
 

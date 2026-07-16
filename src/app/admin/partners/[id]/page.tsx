@@ -356,7 +356,7 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
               <img src={partner.logoUrl} alt={`${partner.firmName} logo`} className="h-12 w-12 rounded-lg border border-border bg-white object-contain p-1" />
             )}
             <div className="grid gap-3 text-sm sm:grid-cols-2">
-              <MasterField label="ICAI membership no." value={partner.icaiNumber} />
+              <MasterField label="Membership No." value={partner.icaiNumber} />
               <MasterField label="ICAI verified" value={partner.icaiVerified ? "Yes" : "No"} />
               <MasterField label="Designation" value={partner.designation} />
               <MasterField label="Referral code" value={partner.referralCode} />
