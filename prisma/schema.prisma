@@ -468,3 +468,16 @@ model CertificationProgress {
 
   @@unique([partnerId, moduleKey])
 }
+
+// ---------------------------------------------------------------------------
+// Editable marketing copy for the co-branded advisor landing page — a
+// single row ("singleton") holding a JSON blob so admin/marketing can edit
+// section copy without a code deploy. Falls back to DEFAULT_LANDING_CONTENT
+// (src/lib/landing-content.ts) until first saved.
+// ---------------------------------------------------------------------------
+
+model LandingPageContent {
+  id        String   @id @default("singleton")
+  data      String
+  updatedAt DateTime @updatedAt
+}

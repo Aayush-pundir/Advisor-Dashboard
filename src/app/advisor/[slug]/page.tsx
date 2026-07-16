@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { captureLeadAction } from "@/app/actions/partner";
 import { notFound } from "next/navigation";
 import { CoLandingAccordion } from "@/components/site/co-landing-accordion";
+import { getLandingContent, fillTokens, type LandingContent } from "@/lib/landing-content";
 
 type Advisor = {
   id: string;
@@ -10,66 +11,6 @@ type Advisor = {
   city: string;
   logoUrl: string | null;
 };
-
-const TRUST_LOGOS = [
-  "Policybazaar", "Puma", "GIVA", "Senco Gold", "FNP", "The Hosteller", "Porter",
-  "Pluckk", "Haldiram's", "Delhivery", "bloom", "Nykaa", "BlueStone", "Taco Bell",
-];
-
-const ENDORSEMENT_ITEMS = [
-  { icon: "🛡", title: "Licensed By RBI" },
-  { icon: "💰", title: "Guaranteed 10% Cost Savings" },
-  { icon: "🧩", title: "One Stop Solution" },
-];
-
-const PROBLEM_STATS = [
-  { big: "30-40 Days", small: "Travel reimbursement cycle" },
-  { big: "10-20%", small: "Monthly spend reduction opportunity" },
-  { big: "₹36 Lakh/Year", small: "Annual business expense leakage" },
-  { big: "₹2.5-3 Lakh/Month", small: "Monthly operational expense leakage" },
-  { big: "10 Man-Hours/Week", small: "Manual effort spent every week" },
-];
-
-const BUILT_DIFFERENT = [
-  ["🛡", "RBI Licensed PPI Issuer", "India's strictest payment compliance standard."],
-  ["🌐", "Bank Independent", "Works with any existing bank account."],
-  ["💳", "RuPay Corporate Cards", "Physical + virtual, accepted everywhere."],
-  ["⚡", "Real-time Everything", "Controls, alerts, and approvals — live."],
-  ["👥", "5-min Onboarding", "Digital KYC, instant card activation."],
-  ["✅", "Audit-Ready by Default", "Every transaction documented automatically."],
-];
-
-const NUMBERS_GRID = [
-  ["5", "Manhours Saved Weekly"], ["100%", "Visibility Of Your Business Spends"],
-  ["0%", "Manual Effort"], ["4x Faster", "Processing With Digital Solutions"],
-  ["18%", "More Savings Annually"], ["3x", "Reduced Maverick Buying"],
-  ["30 Min", "To Get Started"], ["1 Click", "Reimbursements"],
-];
-
-const FINANCE_OS_ITEMS = ["Expense Reporting", "Upload Bills & Invoices", "Ready P&L", "Transaction Controls", "Easy Issuance & Loading"];
-
-const PLATFORM_CAPABILITIES = [
-  ["Expense Reporting & Data", "REPORTING"],
-  ["Last Mile Digitization", "DIGITIZATION"],
-  ["Seamless Integrations", "INTEGRATIONS"],
-];
-
-const OMNI_UPI_ITEMS = ["No Bank A/C Needed", "Create UPI ID In 1 Click", "Send & Receive Payments", "Separate Business and Personal Expenses"];
-
-const WHY_CA_RECOMMENDS = [
-  ["👁", "Improve Financial Control", "Real-time visibility into every expense — no more month-end surprises for you or your CA."],
-  ["📄", "Simplify Bookkeeping", "Auto-categorised transactions flow directly into your accounting workflow, GST-ready."],
-  ["🔄", "Reduce Manual Work", "Automate expense reports, approvals, and reconciliation — saving your team hours every week."],
-  ["🛡", "Enhance Compliance", "Policy-enforced spending, digital receipts, and full audit trails built into every transaction."],
-  ["🕐", "Better Spend Visibility", "Live dashboards give finance teams and your CA a clear, department-level picture at all times."],
-];
-
-const CASE_STUDIES = [
-  ["KKSPUN India Ltd", "How OmniCard Helped KK Spun Eliminate Cash Dependency in Factory Operations", "0", "Cash Dependency", "5/5", "Service Support"],
-  ["The Belgian Waffle Co.", "The Belgian Waffle Co.'s Recipe for Managing Petty Cash with OmniCard", "50%", "Cut in Manpower", "250", "Stores"],
-  ["Haldiram's", "How OmniCard Helped Haldiram's Streamline Multi-Location Expense Management", "100%", "Paperless Operations", "5/5", "User friendliness"],
-  ["BlueStone", "How BlueStone transformed their daily operational expenses from paperwork to real-time digital tracking", "100+", "Retail Stores", "5/5", "Product & Service"],
-];
 
 export default async function AdvisorMicrosite({
   params,
@@ -81,21 +22,22 @@ export default async function AdvisorMicrosite({
   if (!partner || (partner.stage !== "CERTIFIED" && partner.stage !== "ACTIVE") || !partner.micrositeEnabled) {
     notFound();
   }
+  const content = await getLandingContent();
 
   return (
     <div className="bg-[#0A0A0A] font-sans text-white">
       <NavBar />
-      <Hero advisor={partner} />
-      <TrustedLogos />
-      <CAEndorsement advisor={partner} />
-      <ProblemStats />
-      <BuiltDifferent />
-      <NumbersGrid />
-      <FinanceOS />
-      <PlatformCapabilities />
-      <OmniUPISection />
-      <WhyCARecommends advisor={partner} />
-      <Testimonials />
+      <Hero advisor={partner} content={content} />
+      <TrustedLogos content={content} />
+      <CAEndorsement advisor={partner} content={content} />
+      <ProblemStats content={content} />
+      <BuiltDifferent content={content} />
+      <NumbersGrid content={content} />
+      <FinanceOS content={content} />
+      <PlatformCapabilities content={content} />
+      <OmniUPISection content={content} />
+      <WhyCARecommends advisor={partner} content={content} />
+      <Testimonials content={content} />
       <FinalCTA advisor={partner} />
       <Footer />
     </div>
@@ -133,22 +75,21 @@ function PillLink({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Hero({ advisor }: { advisor: Advisor }) {
+function Hero({ advisor, content }: { advisor: Advisor; content: LandingContent }) {
+  const subtext = fillTokens(content.heroSubtext, advisor);
   return (
     <section className="grid grid-cols-1 gap-10 px-8 py-12 md:grid-cols-2 md:px-16">
       <div>
         <Badge>Trusted recommendation &middot; {advisor.firmName}</Badge>
         <h1 className="mt-6 text-5xl font-extrabold leading-tight md:text-6xl">
-          Business Fintech OS for your <span className="text-[#DC2E22]">Spends</span>
+          {content.heroHeadingPrefix}
+          <span className="text-[#DC2E22]">{content.heroHeadingHighlight}</span>
         </h1>
-        <p className="mt-4 max-w-md text-white/60">
-          India&apos;s first bank-independent spend management platform — recommended by{" "}
-          {advisor.contactName}, engineered for how modern businesses in {advisor.city} move money.
-        </p>
+        <p className="mt-4 max-w-md text-white/60">{subtext}</p>
         <ul className="mt-6 flex flex-wrap gap-6 text-sm text-white/70">
-          <li>&#128737; RBI Licensed PPI</li>
-          <li>&#128194; One Stop Solution</li>
-          <li>&#128205; 1000+ Businesses</li>
+          {content.heroBullets.map((b) => (
+            <li key={b}>{b}</li>
+          ))}
         </ul>
       </div>
       <div id="get-started">
@@ -217,12 +158,12 @@ function Field({
   );
 }
 
-function TrustedLogos() {
+function TrustedLogos({ content }: { content: LandingContent }) {
   return (
     <section className="px-8 py-14 text-center">
       <h2 className="text-2xl font-bold">Trusted by 1000+ Businesses</h2>
       <div className="mx-auto mt-8 grid max-w-4xl grid-cols-4 gap-6 opacity-60 sm:grid-cols-7">
-        {TRUST_LOGOS.map((l) => (
+        {content.trustLogos.map((l) => (
           <span key={l} className="text-sm font-semibold">
             {l}
           </span>
@@ -232,7 +173,7 @@ function TrustedLogos() {
   );
 }
 
-function CAEndorsement({ advisor }: { advisor: Advisor }) {
+function CAEndorsement({ advisor, content }: { advisor: Advisor; content: LandingContent }) {
   return (
     <section className="px-8 py-16 text-center">
       {advisor.logoUrl ? (
@@ -242,13 +183,12 @@ function CAEndorsement({ advisor }: { advisor: Advisor }) {
         <div className="mx-auto w-fit rounded-lg bg-white px-6 py-3 font-serif text-black">{advisor.firmName}</div>
       )}
       <h2 className="mt-6 text-4xl font-extrabold">
-        Your CA already found the Best <span className="text-[#DC2E22]">for You.</span>
+        {content.endorsementHeadingPrefix}
+        <span className="text-[#DC2E22]">{content.endorsementHeadingHighlight}</span>
       </h2>
-      <p className="mx-auto mt-3 max-w-xl text-white/60">
-        When your CA recommends a platform, it&apos;s backed by professional accountability, detailed evaluation, and real client results.
-      </p>
+      <p className="mx-auto mt-3 max-w-xl text-white/60">{content.endorsementSubtext}</p>
       <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-6 sm:grid-cols-3">
-        {ENDORSEMENT_ITEMS.map((i) => (
+        {content.endorsementItems.map((i) => (
           <div key={i.title} className="rounded-xl border border-white/10 bg-[#141414] p-6">
             <div className="text-4xl">{i.icon}</div>
             <p className="mt-4 border-t border-white/10 pt-3 text-left font-bold">{i.title}</p>
@@ -259,23 +199,18 @@ function CAEndorsement({ advisor }: { advisor: Advisor }) {
   );
 }
 
-function ProblemStats() {
+function ProblemStats({ content }: { content: LandingContent }) {
   return (
     <section className="px-8 py-16">
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        {PROBLEM_STATS.map((s) => (
+        {content.problemStats.map((s) => (
           <StatCard key={s.small} big={s.big} small={s.small} />
         ))}
       </div>
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        <CoLandingAccordion
-          title="The CFO Struggle Today"
-          body="Reconciling receipts across a dozen departments every month-end, chasing approvals over WhatsApp, and reimbursements that take weeks — this is still how most Indian businesses run spend."
-        />
-        <CoLandingAccordion
-          title="The Harsh Reality Today"
-          body="Manual expense processes cost growing businesses real money in leakage, employee time, and audit risk — long before anyone notices it in the P&L."
-        />
+        {content.problemAccordions.map((a) => (
+          <CoLandingAccordion key={a.title} title={a.title} body={a.body} />
+        ))}
       </div>
     </section>
   );
@@ -290,7 +225,7 @@ function StatCard({ big, small }: { big: string; small: string }) {
   );
 }
 
-function BuiltDifferent() {
+function BuiltDifferent({ content }: { content: LandingContent }) {
   return (
     <section className="grid grid-cols-1 gap-10 px-8 py-16 md:grid-cols-2 md:px-16">
       <div>
@@ -299,16 +234,14 @@ function BuiltDifferent() {
           <br />
           <span className="text-[#DC2E22]">by Design.</span>
         </h2>
-        <p className="mt-4 max-w-sm text-white/60">
-          Every decision at OmniCard is made for Indian businesses — compliance, payment rails, and the scale you&apos;re growing toward.
-        </p>
+        <p className="mt-4 max-w-sm text-white/60">{content.builtDifferentSubtext}</p>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {BUILT_DIFFERENT.map(([icon, title, desc]) => (
-          <div key={title} className="rounded-xl bg-[#141414] p-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#DC2E22]">{icon}</div>
-            <p className="mt-3 font-bold">{title}</p>
-            <p className="mt-1 text-xs text-white/50">{desc}</p>
+        {content.builtDifferentItems.map((i) => (
+          <div key={i.title} className="rounded-xl bg-[#141414] p-5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#DC2E22]">{i.icon}</div>
+            <p className="mt-3 font-bold">{i.title}</p>
+            <p className="mt-1 text-xs text-white/50">{i.desc}</p>
           </div>
         ))}
       </div>
@@ -316,17 +249,17 @@ function BuiltDifferent() {
   );
 }
 
-function NumbersGrid() {
+function NumbersGrid({ content }: { content: LandingContent }) {
   return (
     <section className="px-8 py-16 text-center">
       <h2 className="text-4xl font-extrabold">
         The Numbers <span className="text-[#DC2E22]">Don&apos;t Lie.</span>
       </h2>
       <div className="mx-auto mt-10 grid max-w-5xl grid-cols-2 gap-4 sm:grid-cols-4">
-        {NUMBERS_GRID.map(([big, small]) => (
-          <div key={small} className="rounded-xl bg-gradient-to-b from-white/5 to-transparent p-6 text-left">
-            <p className="text-3xl font-extrabold text-white/90">{big}</p>
-            <p className="mt-3 text-sm text-white/60">{small}</p>
+        {content.numbersGrid.map((s) => (
+          <div key={s.small} className="rounded-xl bg-gradient-to-b from-white/5 to-transparent p-6 text-left">
+            <p className="text-3xl font-extrabold text-white/90">{s.big}</p>
+            <p className="mt-3 text-sm text-white/60">{s.small}</p>
           </div>
         ))}
       </div>
@@ -334,7 +267,7 @@ function NumbersGrid() {
   );
 }
 
-function FinanceOS() {
+function FinanceOS({ content }: { content: LandingContent }) {
   return (
     <section className="px-8 py-16 md:px-16">
       <h2 className="max-w-lg text-4xl font-extrabold">
@@ -346,7 +279,7 @@ function FinanceOS() {
         </div>
       </div>
       <div className="mt-8 grid grid-cols-2 gap-6 text-center text-sm text-white/70 sm:grid-cols-5">
-        {FINANCE_OS_ITEMS.map((i) => (
+        {content.financeOsItems.map((i) => (
           <div key={i}>{i}</div>
         ))}
       </div>
@@ -354,7 +287,7 @@ function FinanceOS() {
   );
 }
 
-function PlatformCapabilities() {
+function PlatformCapabilities({ content }: { content: LandingContent }) {
   return (
     <section className="grid grid-cols-1 gap-10 px-8 py-16 md:grid-cols-2 md:px-16">
       <div>
@@ -362,12 +295,12 @@ function PlatformCapabilities() {
         <h2 className="mt-4 text-4xl font-extrabold">
           Everything in one <span className="text-[#DC2E22]">command centre</span>
         </h2>
-        <p className="mt-2 text-white/60">One platform. Zero compromise.</p>
+        <p className="mt-2 text-white/60">{content.platformCapabilitiesSubtext}</p>
         <div className="mt-6 space-y-3">
-          {PLATFORM_CAPABILITIES.map(([title, tag]) => (
-            <div key={title} className="flex items-center justify-between rounded-xl bg-[#141414] px-5 py-4">
-              <span className="font-semibold">{title}</span>
-              <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-white/60">{tag}</span>
+          {content.platformCapabilities.map((c) => (
+            <div key={c.title} className="flex items-center justify-between rounded-xl bg-[#141414] px-5 py-4">
+              <span className="font-semibold">{c.title}</span>
+              <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-white/60">{c.tag}</span>
             </div>
           ))}
         </div>
@@ -379,7 +312,7 @@ function PlatformCapabilities() {
   );
 }
 
-function OmniUPISection() {
+function OmniUPISection({ content }: { content: LandingContent }) {
   return (
     <section className="px-8 py-16 text-center md:px-16">
       <h2 className="text-4xl font-extrabold">
@@ -389,7 +322,7 @@ function OmniUPISection() {
         Card + UPI preview
       </div>
       <div className="mx-auto mt-10 grid max-w-4xl grid-cols-2 gap-6 text-sm font-semibold sm:grid-cols-4">
-        {OMNI_UPI_ITEMS.map((i) => (
+        {content.omniUpiItems.map((i) => (
           <div key={i}>{i}</div>
         ))}
       </div>
@@ -397,7 +330,7 @@ function OmniUPISection() {
   );
 }
 
-function WhyCARecommends({ advisor }: { advisor: Advisor }) {
+function WhyCARecommends({ advisor, content }: { advisor: Advisor; content: LandingContent }) {
   return (
     <section className="grid grid-cols-1 gap-10 px-8 py-16 md:grid-cols-2 md:px-16">
       <div>
@@ -407,18 +340,15 @@ function WhyCARecommends({ advisor }: { advisor: Advisor }) {
           <br />
           OmniCard
         </h2>
-        <p className="mt-3 max-w-sm text-white/60">
-          As your trusted financial advisor, we&apos;ve evaluated dozens of platforms. OmniCard stands out for its compliance depth,
-          real-time controls, and the genuine time it saves every finance team.
-        </p>
+        <p className="mt-3 max-w-sm text-white/60">{content.whyCaSubtext}</p>
       </div>
       <div className="space-y-3">
-        {WHY_CA_RECOMMENDS.map(([icon, title, desc]) => (
-          <div key={title} className="flex gap-4 rounded-xl bg-[#141414] p-4">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#DC2E22]">{icon}</div>
+        {content.whyCaItems.map((i) => (
+          <div key={i.title} className="flex gap-4 rounded-xl bg-[#141414] p-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#DC2E22]">{i.icon}</div>
             <div>
-              <p className="font-bold">{title}</p>
-              <p className="mt-1 text-xs text-white/50">{desc}</p>
+              <p className="font-bold">{i.title}</p>
+              <p className="mt-1 text-xs text-white/50">{i.desc}</p>
             </div>
           </div>
         ))}
@@ -427,39 +357,38 @@ function WhyCARecommends({ advisor }: { advisor: Advisor }) {
   );
 }
 
-function Testimonials() {
+function Testimonials({ content }: { content: LandingContent }) {
+  const t = content.featuredTestimonial;
   return (
     <section className="px-8 py-16 md:px-16">
       <h2 className="text-center text-4xl font-extrabold">What Our Clients Say</h2>
       <div className="mx-auto mt-10 max-w-4xl rounded-2xl bg-[#141414] p-8 text-center">
-        <p className="font-serif text-lg">Nath Bio-Genes (I) Ltd.</p>
-        <h3 className="mt-3 text-2xl font-bold">
-          How Nath Bio Genes saved &#8377;50L annually on regular business expenses with OmniCard
-        </h3>
+        <p className="font-serif text-lg">{t.company}</p>
+        <h3 className="mt-3 text-2xl font-bold">{t.title}</h3>
         <div className="mt-4 flex justify-center gap-8">
           <div>
-            <p className="text-2xl font-extrabold">50L+</p>
-            <p className="text-xs text-white/50">Saved Annually</p>
+            <p className="text-2xl font-extrabold">{t.stat1}</p>
+            <p className="text-xs text-white/50">{t.label1}</p>
           </div>
           <div>
-            <p className="text-2xl font-extrabold">5/5</p>
-            <p className="text-xs text-white/50">Product Quality</p>
+            <p className="text-2xl font-extrabold">{t.stat2}</p>
+            <p className="text-xs text-white/50">{t.label2}</p>
           </div>
         </div>
       </div>
       <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-6 sm:grid-cols-2">
-        {CASE_STUDIES.map(([company, title, stat1, label1, stat2, label2]) => (
-          <div key={company} className="rounded-xl bg-[#141414] p-6">
-            <p className="text-xs font-semibold text-white/50">{company}</p>
-            <h4 className="mt-2 font-bold">{title}</h4>
+        {content.caseStudies.map((c) => (
+          <div key={c.company} className="rounded-xl bg-[#141414] p-6">
+            <p className="text-xs font-semibold text-white/50">{c.company}</p>
+            <h4 className="mt-2 font-bold">{c.title}</h4>
             <div className="mt-4 flex gap-8">
               <div>
-                <p className="text-xl font-extrabold">{stat1}</p>
-                <p className="text-xs text-white/50">{label1}</p>
+                <p className="text-xl font-extrabold">{c.stat1}</p>
+                <p className="text-xs text-white/50">{c.label1}</p>
               </div>
               <div>
-                <p className="text-xl font-extrabold">{stat2}</p>
-                <p className="text-xs text-white/50">{label2}</p>
+                <p className="text-xl font-extrabold">{c.stat2}</p>
+                <p className="text-xs text-white/50">{c.label2}</p>
               </div>
             </div>
           </div>
