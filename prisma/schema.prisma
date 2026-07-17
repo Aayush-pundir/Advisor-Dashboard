@@ -201,25 +201,26 @@ model Partner {
 // Per-CA creation checklist — Step 3 (12 deliverables, tracked as checkboxes)
 // ---------------------------------------------------------------------------
 
+// An asset the OmniCard team gives an advisor: a title, an optional note,
+// and a file. Admin uploads it from their login; the advisor downloads it
+// from their portal. No status lifecycle, no fixed catalogue — an item
+// exists only because someone uploaded a file for it.
 model AssetKitItem {
-  id          String    @id @default(cuid())
-  partnerId   String
-  partner     Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  key         String
-  customLabel String? // set when admin adds an ad-hoc asset not in the fixed ASSET_KEYS list
-  status      String    @default("PENDING")
-  owner       String // e.g. "Marketing Ops", "Auto (CRM)", "Design"
-  dueAt       DateTime?
-  deliveredAt DateTime?
+  id        String   @id @default(cuid())
+  partnerId String
+  partner   Partner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  title     String
+  note      String? // free-text note from the OmniCard team shown alongside the file
 
   // Actual uploaded file — any format (image, PDF, video, audio, etc.),
   // stored under public/uploads/assets since there's no object storage.
-  fileUrl  String?
-  fileName String? // original filename, shown to the advisor
-  mimeType String?
-  note     String? // free-text note from admin/marketing shown alongside the file
+  fileUrl  String
+  fileName String // original filename, shown to the advisor
+  mimeType String
 
-  @@unique([partnerId, key])
+  owner         String // who on the OmniCard team uploaded it
+  sharedGroupId String? // set when the same file was bulk-shared to several advisors at once
+  createdAt     DateTime @default(now())
 }
 
 // ---------------------------------------------------------------------------

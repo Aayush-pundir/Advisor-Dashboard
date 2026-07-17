@@ -31,9 +31,9 @@ async function saveAssetFile(file: File): Promise<{ fileUrl: string; fileName: s
   return { fileUrl: `/uploads/assets/${storedName}`, fileName: file.name, mimeType: file.type || "application/octet-stream" };
 }
 
-/** Admin/marketing: upload an asset file — any format — for a single
- * partner. Title + note + the file itself become the kit item, delivered
- * immediately since uploading it is delivering it. */
+/** Admin/marketing: give a single advisor an asset — a title, an optional
+ * note, and a file. Uploading it is giving it; the advisor sees it in their
+ * Asset Kit immediately. */
 export async function uploadAssetKitFileAction(
   partnerId: string,
   formData: FormData,
@@ -42,7 +42,6 @@ export async function uploadAssetKitFileAction(
 
   const title = String(formData.get("title") ?? "").trim();
   const note = String(formData.get("note") ?? "").trim() || null;
-  const owner = String(formData.get("owner") ?? "").trim() || actor.name;
   const file = formData.get("file");
 
   if (!title) return { ok: false, error: "Please give the asset a title." };
@@ -53,16 +52,7 @@ export async function uploadAssetKitFileAction(
   const partner = await db.partner.findUniqueOrThrow({ where: { id: partnerId } });
 
   await db.assetKitItem.create({
-    data: {
-      partnerId,
-      key: `CUSTOM_${randomBytes(6).toString("hex")}`,
-      customLabel: title,
-      note,
-      owner,
-      status: "DELIVERED",
-      deliveredAt: new Date(),
-      ...saved,
-    },
+    data: { partnerId, title, note, owner: actor.name, ...saved },
   });
 
   await notifyPartnerUsers(partnerId, {
@@ -86,10 +76,9 @@ export async function uploadAssetKitFileAction(
   return { ok: true };
 }
 
-/** Admin/marketing: upload one asset file once and share it into every
- * selected advisor's kit at the same time — for common creative (a
- * festive campaign pack, a compliance calendar) instead of uploading the
- * same file one partner at a time. */
+/** Admin/marketing: give the same asset to several advisors at once — for
+ * common creative (a festive campaign pack, a compliance calendar) instead
+ * of uploading the same file one advisor at a time. */
 export async function bulkUploadSharedAssetAction(
   formData: FormData,
 ): Promise<{ ok: boolean; created: number; error?: string }> {
@@ -97,7 +86,6 @@ export async function bulkUploadSharedAssetAction(
 
   const title = String(formData.get("title") ?? "").trim();
   const note = String(formData.get("note") ?? "").trim() || null;
-  const owner = String(formData.get("owner") ?? "").trim() || actor.name;
   const file = formData.get("file");
   const partnerIds = formData.getAll("partnerIds").map(String).filter(Boolean);
 
@@ -107,17 +95,15 @@ export async function bulkUploadSharedAssetAction(
   if (partnerIds.length === 0) return { ok: false, created: 0, error: "Select at least one advisor." };
 
   const saved = await saveAssetFile(file);
-  const sharedKey = `SHARED_${randomBytes(6).toString("hex")}`;
+  const sharedGroupId = randomBytes(6).toString("hex");
 
   await db.assetKitItem.createMany({
     data: partnerIds.map((partnerId) => ({
       partnerId,
-      key: sharedKey,
-      customLabel: title,
+      title,
       note,
-      owner,
-      status: "DELIVERED",
-      deliveredAt: new Date(),
+      owner: actor.name,
+      sharedGroupId,
       ...saved,
     })),
   });
@@ -140,34 +126,14 @@ export async function bulkUploadSharedAssetAction(
     meta: `${title} -> ${partnerIds.length} partner(s)`,
   });
 
-  revalidatePath("/admin/partners");
+  revalidatePath("/admin/asset-kit");
   for (const id of partnerIds) revalidatePath(`/admin/partners/${id}`);
   revalidatePath("/partner/assets");
   return { ok: true, created: partnerIds.length };
 }
 
-/** Admin: reassign owner and/or mark status on any asset kit item. */
-export async function updateAssetKitItemAction(itemId: string, formData: FormData) {
-  await requireAssetManager();
-
-  const owner = String(formData.get("owner") ?? "").trim();
-  const status = String(formData.get("status") ?? "").trim();
-  if (!owner || !status) return;
-
-  const item = await db.assetKitItem.update({
-    where: { id: itemId },
-    data: {
-      owner,
-      status,
-      deliveredAt: status === "DELIVERED" ? new Date() : null,
-    },
-  });
-
-  revalidatePath(`/admin/partners/${item.partnerId}`);
-}
-
-/** Admin: remove an asset kit item entirely — fixed-catalogue or custom/
- * uploaded — deleting the underlying file from disk where one was uploaded. */
+/** Admin: remove an asset kit item entirely, deleting the underlying file
+ * from disk. */
 export async function deleteAssetKitItemAction(itemId: string) {
   const actor = await requireAssetManager();
 
@@ -183,7 +149,7 @@ export async function deleteAssetKitItemAction(itemId: string) {
     action: "DELETE_ASSET_KIT_ITEM",
     targetType: "AssetKitItem",
     targetId: itemId,
-    meta: item.customLabel ?? item.key,
+    meta: item.title,
   });
 
   revalidatePath(`/admin/partners/${item.partnerId}`);

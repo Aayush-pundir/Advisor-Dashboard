@@ -7,10 +7,8 @@ import { bulkUploadSharedAssetAction } from "@/app/actions/asset-kit";
 
 export function BulkAssetUploadForm({
   partners,
-  teamNames,
 }: {
   partners: { id: string; firmName: string }[];
-  teamNames: string[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -50,21 +48,9 @@ export function BulkAssetUploadForm({
             className="mt-1 w-full rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand"
           />
         </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <div>
-            <label className="block text-xs font-medium text-muted">Owner (OmniCard Team)</label>
-            <select name="owner" className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand">
-              {teamNames.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-muted">File</label>
-            <input name="file" type="file" required className="mt-1 block text-sm" />
-          </div>
+        <div>
+          <label className="block text-xs font-medium text-muted">File</label>
+          <input name="file" type="file" required className="mt-1 block text-sm" />
         </div>
         <div>
           <Button type="submit" disabled={isPending}>

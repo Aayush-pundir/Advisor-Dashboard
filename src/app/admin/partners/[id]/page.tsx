@@ -50,14 +50,11 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
   const actor = await getAuthedUser();
   const canManage = actor ? canManagePartners(actor.role as UserRole) : false;
 
-  const [notes, activities, teamMembers] = await Promise.all([
+  const [notes, activities] = await Promise.all([
     db.note.findMany({ where: { relatedToType: "PARTNER", relatedToId: partner.id }, orderBy: { createdAt: "desc" } }),
     db.recordActivity.findMany({ where: { relatedToType: "PARTNER", relatedToId: partner.id }, orderBy: { createdAt: "desc" } }),
-    db.user.findMany({ where: { role: "OMNICARD_TEAM", active: true }, select: { name: true }, orderBy: { name: "asc" } }),
   ]);
-  const teamNames = teamMembers.map((t) => t.name);
 
-  const deliveredAssets = partner.assetKitItems.filter((a) => a.status === "DELIVERED").length;
   const convertedLeads = partner.leads.filter((l) => l.stage === "CLOSED_WON");
   const totalRevenue = convertedLeads.reduce((sum, l) => sum + l.dealValue, 0);
   const totalAdvisoryFees = partner.commissions
@@ -145,7 +142,7 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Asset kits delivered" value={`${deliveredAssets}/${partner.assetKitItems.length}`} />
+        <StatTile label="Assets shared" value={String(partner.assetKitItems.length)} />
         <StatTile label="Marketing campaigns run" value={String(partner.campaigns.length)} />
         <StatTile label="Total leads provided" value={String(partner.leads.length)} />
         <StatTile label="Successfully converted leads" value={String(convertedLeads.length)} />
@@ -242,7 +239,7 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
             <CardTitle>Asset kit</CardTitle>
           </CardHeader>
           <CardContent>
-            <AssetKitManager partnerId={partner.id} items={partner.assetKitItems} teamNames={teamNames} />
+            <AssetKitManager partnerId={partner.id} items={partner.assetKitItems} />
           </CardContent>
         </Card>
       )}

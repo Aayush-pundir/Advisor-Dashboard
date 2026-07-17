@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { slugify, randomReferralCode } from "@/lib/slug";
-import { ASSET_KEYS, CURRENT_MOU_VERSION } from "@/lib/enums";
+import { CURRENT_MOU_VERSION } from "@/lib/enums";
 import type { UserRole } from "@/lib/enums";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -232,15 +232,6 @@ export async function certifyPartnerAction(partnerId: string) {
     },
   });
 
-  await db.assetKitItem.createMany({
-    data: ASSET_KEYS.map((key) => ({
-      partnerId: partner.id,
-      key,
-      owner: key === "FIRST_CAMPAIGN_DRAFT" ? "Auto (CRM)" : "Marketing Ops",
-      dueAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-    })),
-  });
-
   await db.activityEvent.create({
     data: { partnerId: partner.id, type: "WEBINAR_ATTEND", meta: "demo_certified" },
   });
@@ -253,7 +244,7 @@ export async function certifyPartnerAction(partnerId: string) {
   await notifyPartnerUsers(partner.id, {
     type: "CERTIFIED",
     title: "You're certified!",
-    body: "Your Implementation Advisor badge and asset kit are ready.",
+    body: "Your Implementation Advisor badge is ready. Marketing assets will appear in your Asset Kit as our team shares them.",
     href: "/partner/assets",
   });
 
@@ -472,15 +463,6 @@ export async function completeCertificationAction(partnerId: string, formData: F
     },
   });
 
-  await db.assetKitItem.createMany({
-    data: ASSET_KEYS.map((key) => ({
-      partnerId: partner.id,
-      key,
-      owner: key === "FIRST_CAMPAIGN_DRAFT" ? "Auto (CRM)" : "Marketing Ops",
-      dueAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-    })),
-  });
-
   await db.activityEvent.create({
     data: { partnerId: partner.id, type: "WEBINAR_ATTEND", meta: "demo_certified" },
   });
@@ -493,7 +475,7 @@ export async function completeCertificationAction(partnerId: string, formData: F
   await notifyPartnerUsers(partner.id, {
     type: "CERTIFIED",
     title: "You're certified!",
-    body: "Your Implementation Advisor badge and asset kit are ready.",
+    body: "Your Implementation Advisor badge is ready. Marketing assets will appear in your Asset Kit as our team shares them.",
     href: "/partner/assets",
   });
 

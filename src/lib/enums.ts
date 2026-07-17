@@ -53,37 +53,6 @@ export const BADGE_TIER_META: Record<
   },
 };
 
-export const ASSET_KEYS = [
-  "LANDING_PAGE",
-  "QR_CODE",
-  "EXPLAINER_VIDEO",
-  "EMAIL_SIGNATURE",
-  "MINI_DECK",
-  "WHATSAPP_PACK",
-  "LINKEDIN_KIT",
-  "SAVINGS_CALCULATOR",
-  "LEAD_MAGNET_PDF",
-  "FIRST_CAMPAIGN_DRAFT",
-  "COMPLIANCE_CALENDAR",
-] as const;
-export type AssetKey = (typeof ASSET_KEYS)[number];
-
-export const ASSET_LABELS: Record<AssetKey, string> = {
-  LANDING_PAGE: "Co-branded landing page",
-  QR_CODE: "Personal QR code + tracked short link",
-  EXPLAINER_VIDEO: "Personalized 90-sec explainer video",
-  EMAIL_SIGNATURE: "Email signature banner",
-  MINI_DECK: "Client-facing 8-slide mini-deck",
-  WHATSAPP_PACK: "WhatsApp creative pack (10-12 cards)",
-  LINKEDIN_KIT: "LinkedIn content kit (4 posts)",
-  SAVINGS_CALCULATOR: "Co-branded savings calculator",
-  LEAD_MAGNET_PDF: "'Spend Leakage Audit' lead-magnet PDF",
-  FIRST_CAMPAIGN_DRAFT: "First email + WhatsApp campaign draft",
-  COMPLIANCE_CALENDAR: "Compliance calendar wallpaper",
-};
-
-export const ASSET_STATUSES = ["PENDING", "IN_PROGRESS", "DELIVERED"] as const;
-export type AssetStatus = (typeof ASSET_STATUSES)[number];
 
 export const LEAD_SOURCES = [
   "MICROSITE",
