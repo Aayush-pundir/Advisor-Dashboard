@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/lib/utils";
 import { RequestDemoButton } from "@/components/partner/request-demo-button";
 
@@ -42,6 +43,15 @@ function Step({
 }
 
 export function OnboardingTimeline({ partner }: { partner: OnboardingPartner }) {
+  const steps = [
+    !!partner.acceptedAt,
+    !!partner.mouCountersignedAt,
+    !!partner.demoScheduledAt,
+    !!partner.demoAttendedAt,
+  ];
+  const totalSteps = steps.length;
+  const doneSteps = steps.filter(Boolean).length;
+
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -50,6 +60,20 @@ export function OnboardingTimeline({ partner }: { partner: OnboardingPartner }) 
           {`${partner.firmName} is being onboarded as an OmniCard Advisory Partner. Here's exactly where things stand.`}
         </p>
       </div>
+
+      <Card className="p-5">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium">
+            {doneSteps === totalSteps
+              ? "All steps complete — you're certified!"
+              : `Step ${doneSteps + 1} of ${totalSteps} to certified`}
+          </span>
+          <span className="text-muted">
+            {doneSteps}/{totalSteps} done
+          </span>
+        </div>
+        <Progress value={(doneSteps / totalSteps) * 100} className="mt-3" />
+      </Card>
 
       <Card className="p-6">
         <div className="flex flex-col gap-6">

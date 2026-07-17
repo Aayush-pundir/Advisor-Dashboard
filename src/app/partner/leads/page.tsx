@@ -18,6 +18,7 @@ import { AddLeadForm } from "@/components/partner/add-lead-form";
 import { LeadsBulkUploader } from "@/components/partner/leads-bulk-uploader";
 import { MarketingContactsUploader } from "@/components/partner/marketing-contacts-uploader";
 import { CsvExportButton } from "@/components/partner/csv-export-button";
+import { FilterChip } from "@/components/shared/filter-chip";
 
 const stageVariant: Record<LeadStage, "neutral" | "default" | "success" | "warning" | "danger"> = {
   CAPTURED: "neutral",
@@ -99,6 +100,15 @@ async function LeadsTab({
 
   const hasFilters = !!(stage || category || source);
 
+  function chipHref(remove: "stage" | "category" | "source") {
+    const p = new URLSearchParams();
+    if (stage && remove !== "stage") p.set("stage", stage);
+    if (category && remove !== "category") p.set("category", category);
+    if (source && remove !== "source") p.set("source", source);
+    const s = p.toString();
+    return `/partner/leads${s ? `?${s}` : ""}`;
+  }
+
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -151,10 +161,20 @@ async function LeadsTab({
         )}
       </form>
 
+      {hasFilters && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {stage && <FilterChip label={`Stage: ${LEAD_STAGE_LABELS[stage as LeadStage]}`} removeHref={chipHref("stage")} />}
+          {category && (
+            <FilterChip label={`Category: ${LEAD_CATEGORY_LABELS[category as LeadCategory]}`} removeHref={chipHref("category")} />
+          )}
+          {source && <FilterChip label={`Source: ${source}`} removeHref={chipHref("source")} />}
+        </div>
+      )}
+
       <p className="mt-3 text-xs text-muted">{leads.length} lead(s)</p>
 
       <Card className="mt-4 overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="responsive-table w-full text-sm">
           <thead className="border-b border-border text-left text-muted">
             <tr>
               <th className="p-3 font-medium">Business</th>
@@ -169,27 +189,40 @@ async function LeadsTab({
           <tbody>
             {leads.map((l) => (
               <tr key={l.id} className="border-b border-border last:border-0">
-                <td className="p-3 font-medium">{l.businessName}</td>
-                <td className="p-3 text-muted">{l.contactName}</td>
-                <td className="p-3 text-muted">{l.source}</td>
-                <td className="p-3">
+                <td className="p-3 font-medium" data-label="Business">{l.businessName}</td>
+                <td className="p-3 text-muted" data-label="Contact">{l.contactName}</td>
+                <td className="p-3 text-muted" data-label="Source">{l.source}</td>
+                <td className="p-3" data-label="Stage">
                   <Badge variant={stageVariant[l.stage as LeadStage]}>
                     {LEAD_STAGE_LABELS[l.stage as LeadStage]}
                   </Badge>
                 </td>
-                <td className="p-3 text-muted">
+                <td className="p-3 text-muted" data-label="Category">
                   {l.category ? LEAD_CATEGORY_LABELS[l.category as LeadCategory] : "—"}
                 </td>
-                <td className="p-3">{formatINR(l.dealValue)}</td>
-                <td className="p-3 text-muted">{formatDate(l.createdAt)}</td>
+                <td className="p-3" data-label="Deal value">{formatINR(l.dealValue)}</td>
+                <td className="p-3 text-muted" data-label="Captured">{formatDate(l.createdAt)}</td>
               </tr>
             ))}
           </tbody>
         </table>
         {leads.length === 0 && (
-          <p className="p-6 text-center text-muted">
-            No leads yet. Share your referral link to get started.
-          </p>
+          hasFilters ? (
+            <div className="flex flex-col items-center gap-2 p-8 text-center">
+              <p className="text-sm text-muted">No leads match these filters.</p>
+              <Link href="/partner/leads" className="text-sm font-medium text-brand hover:underline">
+                Clear filters
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3 p-8 text-center">
+              <p className="text-sm font-medium">No leads yet</p>
+              <p className="max-w-md text-sm text-muted">
+                Add your first client lead, or share your co-landing link so clients come to you.
+              </p>
+              <AddLeadForm />
+            </div>
+          )
         )}
       </Card>
     </div>
@@ -238,7 +271,13 @@ async function MarketingTab({ partnerId }: { partnerId: string }) {
           </tbody>
         </table>
         {contacts.length === 0 && (
-          <p className="p-6 text-center text-muted">No contacts uploaded yet.</p>
+          <div className="flex flex-col items-center gap-3 p-8 text-center">
+            <p className="text-sm font-medium">No contacts uploaded yet</p>
+            <p className="max-w-md text-sm text-muted">
+              Upload your client roster so OmniCard&apos;s marketing team can run co-branded campaigns to them.
+            </p>
+            <MarketingContactsUploader />
+          </div>
         )}
       </Card>
     </div>

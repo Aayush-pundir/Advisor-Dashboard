@@ -31,3 +31,30 @@ export async function revealLeadPiiAction(
 
   return { ok: true, phone: lead.phone, email: lead.email };
 }
+
+/** Reveals raw phone/email for many leads at once — for a call-down session
+ * across the current view. One audited action instead of one per row. */
+export async function revealAllLeadsPiiAction(
+  leadIds: string[],
+): Promise<{ ok: boolean; items?: { id: string; phone: string; email: string }[]; error?: string }> {
+  const actor = await getAuthedUser();
+  if (!actor || !canRevealPii(actor.role as UserRole)) {
+    return { ok: false, error: "Your role can't reveal client contact details." };
+  }
+
+  const leads = await db.lead.findMany({
+    where: { id: { in: leadIds } },
+    select: { id: true, phone: true, email: true },
+  });
+
+  await logAudit({
+    actorId: actor.id,
+    actorName: actor.name,
+    action: "REVEAL_PII_BULK",
+    targetType: "Lead",
+    targetId: "bulk",
+    meta: `${leads.length} lead(s)`,
+  });
+
+  return { ok: true, items: leads.map((l) => ({ id: l.id, phone: l.phone, email: l.email })) };
+}

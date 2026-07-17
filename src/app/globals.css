@@ -56,6 +56,38 @@ h3 {
   font-family: var(--font-serif), Georgia, serif;
 }
 
+/* Responsive data tables: below `sm`, rows stack into cards instead of
+   scrolling horizontally. Each <td> needs a `data-label` attribute — shown
+   as a small caption before its content — since headers are hidden. Cells
+   with no meaningful label (e.g. an actions column) can omit it. */
+@media (max-width: 639px) {
+  .responsive-table thead {
+    display: none;
+  }
+  .responsive-table,
+  .responsive-table tbody,
+  .responsive-table tr,
+  .responsive-table td {
+    display: block;
+    width: 100%;
+  }
+  .responsive-table tr {
+    padding: 0.75rem 0;
+  }
+  .responsive-table td {
+    padding: 0.25rem 0.75rem;
+    border: none;
+  }
+  .responsive-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 0.125rem;
+  }
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;

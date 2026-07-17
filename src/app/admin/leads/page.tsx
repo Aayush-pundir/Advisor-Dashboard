@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { LeadsKanban } from "@/components/admin/leads-kanban";
 import { buildLeadDuplicateMap } from "@/lib/duplicate-detection";
 import { LeadCommercialsForm } from "@/components/admin/lead-commercials-form";
+import { FilterChip } from "@/components/shared/filter-chip";
+import { PiiRevealProvider, RevealAllButton } from "@/components/admin/pii-reveal-context";
 
 export default async function AdminLeadsPage({
   searchParams,
@@ -72,6 +74,23 @@ export default async function AdminLeadsPage({
   if (category) filterQs.set("category", category);
   if (assignedToId) filterQs.set("assignedToId", assignedToId);
   if (partnerId) filterQs.set("partnerId", partnerId);
+
+  function chipHref(remove: "stage" | "source" | "category" | "assignedToId" | "partnerId") {
+    const p = new URLSearchParams();
+    if (view) p.set("view", view);
+    if (sort) p.set("sort", sort);
+    if (stage && remove !== "stage") p.set("stage", stage);
+    if (source && remove !== "source") p.set("source", source);
+    if (category && remove !== "category") p.set("category", category);
+    if (assignedToId && remove !== "assignedToId") p.set("assignedToId", assignedToId);
+    if (partnerId && remove !== "partnerId") p.set("partnerId", partnerId);
+    const s = p.toString();
+    return `/admin/leads${s ? `?${s}` : ""}`;
+  }
+
+  const assignedLabel =
+    assignedToId === "UNASSIGNED" ? "Unassigned" : reps.find((r) => r.id === assignedToId)?.name ?? assignedToId;
+  const partnerLabel = partners.find((p) => p.id === partnerId)?.firmName ?? partnerId;
 
   function tabHref(targetView: "table" | "kanban") {
     const p = new URLSearchParams(filterQs);
@@ -186,8 +205,21 @@ export default async function AdminLeadsPage({
         )}
       </form>
 
+      {hasFilters && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {stage && <FilterChip label={`Stage: ${LEAD_STAGE_LABELS[stage as LeadStage]}`} removeHref={chipHref("stage")} />}
+          {source && <FilterChip label={`Source: ${source}`} removeHref={chipHref("source")} />}
+          {category && (
+            <FilterChip label={`Category: ${LEAD_CATEGORY_LABELS[category as LeadCategory]}`} removeHref={chipHref("category")} />
+          )}
+          {assignedToId && <FilterChip label={`Assigned: ${assignedLabel}`} removeHref={chipHref("assignedToId")} />}
+          {partnerId && <FilterChip label={`Partner: ${partnerLabel}`} removeHref={chipHref("partnerId")} />}
+        </div>
+      )}
+
       <p className="mt-3 text-xs text-muted">{leads.length} lead(s)</p>
 
+      <PiiRevealProvider leadIds={leads.map((l) => l.id)}>
       <div className="mt-4 flex items-center justify-between gap-4 border-b border-border">
         <div className="flex gap-1">
           <Link
@@ -210,9 +242,12 @@ export default async function AdminLeadsPage({
           </Link>
         </div>
         {activeView === "table" && (
-          <Link href={sortHref(sort !== "score")} className="pb-2 text-xs text-muted hover:text-brand hover:underline">
-            {sort === "score" ? "Sort by newest" : "Sort by score"}
-          </Link>
+          <div className="flex items-center gap-4 pb-2">
+            {canManage && <RevealAllButton />}
+            <Link href={sortHref(sort !== "score")} className="text-xs text-muted hover:text-brand hover:underline">
+              {sort === "score" ? "Sort by newest" : "Sort by score"}
+            </Link>
+          </div>
         )}
       </div>
 
@@ -229,7 +264,7 @@ export default async function AdminLeadsPage({
         />
       ) : (
       <Card className="mt-6 overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="responsive-table w-full text-sm">
           <thead className="border-b border-border text-left text-muted">
             <tr>
               <th className="p-3 font-medium">Business</th>
@@ -249,7 +284,7 @@ export default async function AdminLeadsPage({
               const dupes = duplicateMap.get(l.id) ?? [];
               return (
               <tr key={l.id} className="border-b border-border last:border-0">
-                <td className="p-3">
+                <td className="p-3" data-label="Business">
                   <Link href={`/admin/leads/${l.id}`} className="font-medium text-brand-dark hover:underline">
                     {l.businessName}
                   </Link>
@@ -269,7 +304,7 @@ export default async function AdminLeadsPage({
                     </Badge>
                   )}
                 </td>
-                <td className="p-3">
+                <td className="p-3" data-label="Contact">
                   {canManage ? (
                     <RevealPii
                       leadId={l.id}
@@ -283,24 +318,24 @@ export default async function AdminLeadsPage({
                     </div>
                   )}
                 </td>
-                <td className="p-3 text-muted">{l.partner.firmName}</td>
-                <td className="p-3 text-muted">{l.source}</td>
-                <td className="p-3">
+                <td className="p-3 text-muted" data-label="Referred by">{l.partner.firmName}</td>
+                <td className="p-3 text-muted" data-label="Source">{l.source}</td>
+                <td className="p-3" data-label="Category">
                   {l.category ? (
                     <Badge variant="neutral">{LEAD_CATEGORY_LABELS[l.category as LeadCategory]}</Badge>
                   ) : (
                     <span className="text-xs text-muted">Not set</span>
                   )}
                 </td>
-                <td className="p-3">
+                <td className="p-3" data-label="Commercials">
                   {canManage ? (
                     <LeadCommercialsForm leadId={l.id} dealValue={l.dealValue} billingCycle={l.billingCycle} category={l.category} />
                   ) : (
                     <span className="text-xs">{formatINR(l.dealValue)}</span>
                   )}
                 </td>
-                <td className="p-3 text-muted">{formatDate(l.createdAt)}</td>
-                <td className="p-3">
+                <td className="p-3 text-muted" data-label="Captured">{formatDate(l.createdAt)}</td>
+                <td className="p-3" data-label="Stage">
                   {canManage ? (
                     <LeadStageSelect
                       leadId={l.id}
@@ -312,7 +347,7 @@ export default async function AdminLeadsPage({
                     <Badge variant="neutral">{LEAD_STAGE_LABELS[l.stage as LeadStage]}</Badge>
                   )}
                 </td>
-                <td className="p-3">
+                <td className="p-3" data-label="Assigned to">
                   {canManage ? (
                     <ReassignLeadSelect leadId={l.id} assignedToId={l.assignedToId} reps={reps} />
                   ) : (
@@ -329,6 +364,7 @@ export default async function AdminLeadsPage({
         )}
       </Card>
       )}
+      </PiiRevealProvider>
     </div>
   );
 }

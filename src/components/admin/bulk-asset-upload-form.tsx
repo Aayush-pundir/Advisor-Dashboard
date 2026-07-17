@@ -17,11 +17,17 @@ export function BulkAssetUploadForm({
   return (
     <form
       ref={formRef}
+      onSubmit={(e) => {
+        const count = new FormData(e.currentTarget).getAll("partnerIds").filter(Boolean).length;
+        if (count > 0 && !confirm(`Share this asset with ${count} advisor(s)? Each one gets a notification.`)) {
+          e.preventDefault();
+        }
+      }}
       action={(formData) =>
         startTransition(async () => {
           const result = await bulkUploadSharedAssetAction(formData);
           if (result.ok) {
-            setMessage({ ok: true, text: `Delivered to ${result.created} advisor(s).` });
+            setMessage({ ok: true, text: `Shared with ${result.created} advisor(s).` });
             formRef.current?.reset();
           } else {
             setMessage({ ok: false, text: result.error ?? "Upload failed." });

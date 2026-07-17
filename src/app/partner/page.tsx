@@ -145,7 +145,7 @@ export default async function PartnerDashboardPage() {
                   className="h-16 w-16 shrink-0 rounded border border-border bg-white p-1"
                 />
               </div>
-              <div className="mt-3 flex items-center gap-4">
+              <div className="mt-3 flex flex-wrap items-center gap-4">
                 <a
                   href={`https://${referralLink}`}
                   target="_blank"
@@ -155,6 +155,13 @@ export default async function PartnerDashboardPage() {
                   View live page &#8599;
                 </a>
                 <CopyLinkButton value={`https://${referralLink}`} />
+                <a
+                  href={referralQrCode}
+                  download={`${partner.slug}-qr-code.png`}
+                  className="text-xs font-semibold text-brand-dark hover:underline"
+                >
+                  Download QR &#8595;
+                </a>
               </div>
             </div>
           </CardContent>

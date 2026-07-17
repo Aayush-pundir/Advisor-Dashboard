@@ -163,7 +163,7 @@ export default async function AdminPartnersPage({
       </p>
 
       <Card className="mt-3 overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="responsive-table w-full text-sm">
           <thead className="border-b border-border text-left text-muted">
             <tr>
               <th className="p-3 font-medium">Firm</th>
@@ -181,7 +181,7 @@ export default async function AdminPartnersPage({
               const dupes = duplicateMap.get(p.id) ?? [];
               return (
                 <tr key={p.id} className="border-b border-border last:border-0 hover:bg-brand-light/40">
-                  <td className="p-3">
+                  <td className="p-3" data-label="Firm">
                     <Link href={`/admin/partners/${p.id}`} className="font-medium text-brand-dark hover:underline">
                       {p.firmName}
                     </Link>
@@ -192,7 +192,7 @@ export default async function AdminPartnersPage({
                       </Badge>
                     )}
                   </td>
-                  <td className="p-3 text-muted">
+                  <td className="p-3 text-muted" data-label="City">
                     <p>{p.city}</p>
                     {hasOverlap && (
                       <Badge variant="danger" className="mt-1">
@@ -200,14 +200,14 @@ export default async function AdminPartnersPage({
                       </Badge>
                     )}
                   </td>
-                  <td className="p-3">
+                  <td className="p-3" data-label="Stage">
                     <Badge variant={stageVariant[p.stage as PartnerStage]}>
                       {PARTNER_STAGE_LABELS[p.stage as PartnerStage]}
                     </Badge>
                   </td>
-                  <td className="p-3 text-muted">{p.badgeTier}</td>
-                  <td className="p-3 text-muted">{CERT_LEVEL_LABELS[p.certLevel as CertLevel]}</td>
-                  <td className="p-3">
+                  <td className="p-3 text-muted" data-label="Tier">{p.badgeTier}</td>
+                  <td className="p-3 text-muted" data-label="Certification">{CERT_LEVEL_LABELS[p.certLevel as CertLevel]}</td>
+                  <td className="p-3" data-label="Live page">
                     {p.stage === "CERTIFIED" || p.stage === "ACTIVE" ? (
                       <a
                         href={`/advisor/${p.slug}`}
