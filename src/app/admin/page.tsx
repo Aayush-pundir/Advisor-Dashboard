@@ -132,7 +132,7 @@ export default async function AdminOverviewPage() {
             <span className="ml-1 text-sm font-normal text-muted">({queueTotal})</span>
           )}
         </h2>
-        <div className="mt-3 grid gap-4 overflow-x-auto pb-2 sm:grid-cols-2 lg:grid-flow-col lg:auto-cols-[minmax(270px,1fr)]">
+        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:flex-nowrap sm:overflow-x-auto sm:pb-2">
           <QueueColumn title="Partner leads awaiting acceptance" emptyText="No new partner leads waiting.">
             {pendingAccept.map((p) => (
               <QueueRow
@@ -212,7 +212,7 @@ function QueueColumn({
 }) {
   const hasItems = Array.isArray(children) ? children.length > 0 : !!children;
   return (
-    <Card className="flex min-w-[230px] flex-col">
+    <Card className="flex flex-col sm:w-72 sm:shrink-0">
       <div className="border-b border-border px-4 py-3">
         <p className="text-sm font-semibold">{title}</p>
       </div>
