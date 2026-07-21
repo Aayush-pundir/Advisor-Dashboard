@@ -1,6 +1,5 @@
 import { db } from "@/lib/db";
 import { BADGE_TIER_META } from "@/lib/enums";
-import type { BadgeTier } from "@/lib/enums";
 
 export async function getPartnerDashboard(partnerId: string) {
   const [partner, leads, commissions, badges, cityPartners] =
@@ -38,7 +37,7 @@ export async function getPartnerDashboard(partnerId: string) {
     (l) => l.stage === "CLOSED_WON" && l.closedAt && l.closedAt >= quarterStart,
   ).length;
 
-  const nextTier = getNextTier(partner.badgeTier as BadgeTier);
+  const nextTier = getNextTier(clientsThisQuarter);
 
   // City rank by closed-won leads among partners in the same city
   const cityPartnerIds = cityPartners
@@ -75,10 +74,17 @@ function getQuarterStart() {
   return new Date(now.getFullYear(), quarterMonth, 1);
 }
 
-function getNextTier(current: BadgeTier) {
-  const order: BadgeTier[] = ["NONE", "SILVER", "GOLD", "PLATINUM"];
-  const idx = order.indexOf(current);
-  if (idx === order.length - 1) return null;
-  const next = order[idx + 1] as Exclude<BadgeTier, "NONE">;
-  return { tier: next, ...BADGE_TIER_META[next] };
+/** Milestone progress moves one tier at a time within the current quarter —
+ * Silver, then Gold, then Platinum — rather than jumping straight to
+ * whatever tier is above the advisor's all-time highest badge. Each tier
+ * unlocks as the display target only once the one before it is reached
+ * this quarter. */
+function getNextTier(clientsThisQuarter: number) {
+  const order = ["SILVER", "GOLD", "PLATINUM"] as const;
+  for (const tier of order) {
+    if (clientsThisQuarter < BADGE_TIER_META[tier].threshold) {
+      return { tier, ...BADGE_TIER_META[tier] };
+    }
+  }
+  return null;
 }
