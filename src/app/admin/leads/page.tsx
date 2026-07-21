@@ -268,7 +268,7 @@ export default async function AdminLeadsPage({
           <thead className="border-b border-border text-left text-muted">
             <tr>
               <th className="p-3 font-medium">Business</th>
-              <th className="p-3 font-medium">Contact</th>
+              <th className="p-3 font-medium">POC</th>
               <th className="p-3 font-medium">Referred by</th>
               <th className="p-3 font-medium">Source</th>
               <th className="p-3 font-medium">Category</th>
@@ -288,7 +288,6 @@ export default async function AdminLeadsPage({
                   <Link href={`/admin/leads/${l.id}`} className="font-medium text-brand-dark hover:underline">
                     {l.businessName}
                   </Link>
-                  <p className="text-xs text-muted">{l.contactName}</p>
                   {hasConflict && (
                     <Badge variant="danger" className="mt-1">
                       Channel conflict
@@ -304,7 +303,8 @@ export default async function AdminLeadsPage({
                     </Badge>
                   )}
                 </td>
-                <td className="p-3" data-label="Contact">
+                <td className="p-3" data-label="POC">
+                  <p className="text-sm">{l.contactName}</p>
                   {canManage ? (
                     <RevealPii
                       leadId={l.id}

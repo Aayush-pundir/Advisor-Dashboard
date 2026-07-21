@@ -75,7 +75,7 @@ export default async function AdminLeadDetailPage({
       </div>
 
       <Card className="p-4">
-        <h3 className="text-sm font-semibold">Contact details</h3>
+        <h3 className="text-sm font-semibold">POC details</h3>
         <div className="mt-2 text-sm">
           {canManage ? (
             <RevealPii leadId={lead.id} maskedPhone={maskPhone(lead.phone)} maskedEmail={maskEmail(lead.email)} />

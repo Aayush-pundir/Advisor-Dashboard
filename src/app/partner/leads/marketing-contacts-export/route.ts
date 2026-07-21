@@ -20,7 +20,7 @@ export async function GET() {
       createdAt: c.createdAt.toISOString(),
     })),
     [
-      { key: "contactName", header: "Contact" },
+      { key: "contactName", header: "POC" },
       { key: "phone", header: "Phone" },
       { key: "email", header: "Email" },
       { key: "city", header: "City" },

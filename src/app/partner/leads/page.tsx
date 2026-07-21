@@ -178,7 +178,7 @@ async function LeadsTab({
           <thead className="border-b border-border text-left text-muted">
             <tr>
               <th className="p-3 font-medium">Business</th>
-              <th className="p-3 font-medium">Contact</th>
+              <th className="p-3 font-medium">POC</th>
               <th className="p-3 font-medium">Source</th>
               <th className="p-3 font-medium">Stage</th>
               <th className="p-3 font-medium">Category</th>
@@ -190,7 +190,10 @@ async function LeadsTab({
             {leads.map((l) => (
               <tr key={l.id} className="border-b border-border last:border-0">
                 <td className="p-3 font-medium" data-label="Business">{l.businessName}</td>
-                <td className="p-3 text-muted" data-label="Contact">{l.contactName}</td>
+                <td className="p-3 text-muted" data-label="POC">
+                  <p className="text-foreground">{l.contactName}</p>
+                  <p className="text-xs">{l.phone}</p>
+                </td>
                 <td className="p-3 text-muted" data-label="Source">{l.source}</td>
                 <td className="p-3" data-label="Stage">
                   <Badge variant={stageVariant[l.stage as LeadStage]}>
@@ -251,7 +254,7 @@ async function MarketingTab({ partnerId }: { partnerId: string }) {
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-muted">
             <tr>
-              <th className="p-3 font-medium">Contact</th>
+              <th className="p-3 font-medium">POC</th>
               <th className="p-3 font-medium">Phone</th>
               <th className="p-3 font-medium">Email</th>
               <th className="p-3 font-medium">City</th>

@@ -25,7 +25,7 @@ export async function GET() {
     })),
     [
       { key: "businessName", header: "Business" },
-      { key: "contactName", header: "Contact" },
+      { key: "contactName", header: "POC" },
       { key: "phone", header: "Phone" },
       { key: "email", header: "Email" },
       { key: "source", header: "Source" },

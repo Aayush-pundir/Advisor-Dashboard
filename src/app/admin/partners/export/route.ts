@@ -27,7 +27,7 @@ export async function GET() {
     })),
     [
       { key: "firmName", header: "Firm" },
-      { key: "contactName", header: "Contact" },
+      { key: "contactName", header: "POC" },
       { key: "email", header: "Email" },
       { key: "phone", header: "Phone" },
       { key: "city", header: "City" },

@@ -192,7 +192,7 @@ async function ContactsTab({ canManage }: { canManage: boolean }) {
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-muted">
             <tr>
-              <th className="p-3 font-medium">Contact</th>
+              <th className="p-3 font-medium">POC</th>
               <th className="p-3 font-medium">Details</th>
               <th className="p-3 font-medium">Uploaded by</th>
               <th className="p-3 font-medium">City</th>
