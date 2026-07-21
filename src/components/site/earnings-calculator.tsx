@@ -5,7 +5,6 @@ import { formatINR } from "@/lib/utils";
 import {
   DEFAULT_ANNUAL_CHURN,
   ltvCommissionPerClient,
-  expectedTrailingYears,
   acvFromExpenditure,
 } from "@/lib/enums";
 
@@ -13,14 +12,13 @@ export function EarningsCalculator() {
   const [clients, setClients] = useState(10);
   const [expenditure, setExpenditure] = useState(25000000);
 
-  const { year1Total, trailingTotal, lifetimeTotal, tenureYears } = useMemo(() => {
+  const { year1Total, trailingTotal, lifetimeTotal } = useMemo(() => {
     const acv = acvFromExpenditure(expenditure);
     const perClient = ltvCommissionPerClient(acv, DEFAULT_ANNUAL_CHURN);
     return {
       year1Total: perClient.year1 * clients,
       trailingTotal: perClient.trailing * clients,
       lifetimeTotal: perClient.total * clients,
-      tenureYears: 1 + expectedTrailingYears(DEFAULT_ANNUAL_CHURN),
     };
   }, [clients, expenditure]);
 
@@ -129,14 +127,6 @@ export function EarningsCalculator() {
           </p>
         </div>
       </div>
-
-      <p className="mt-4 text-center text-[12px] leading-relaxed text-[#1B1714]/45">
-        At 10% annual churn, a client stays active for ~{tenureYears.toFixed(0)}{" "}
-        years on average — Year-1 fee is auto-credited on go-live, trailing
-        fees credit every year the client renews.
-        <br />
-        Note: Contract value assumed at 2% of client expenditure, calculated considering a 10% churn.
-      </p>
     </div>
   );
 }
