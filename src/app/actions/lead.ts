@@ -32,6 +32,7 @@ export async function addLeadManuallyAction(
   const contactName = String(formData.get("contactName") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
+  const dealValue = Math.max(0, Number(formData.get("dealValue") ?? 0) || 0);
 
   if (!businessName || !contactName || !phone || !email) {
     return { ok: false, error: "Please fill in business name, contact name, phone and email." };
@@ -54,12 +55,13 @@ export async function addLeadManuallyAction(
       email,
       source: "PARTNER_MANUAL",
       stage: "CAPTURED",
+      dealValue,
       assignedToId,
       createdAt,
       score: computeLeadScore({
         source: "PARTNER_MANUAL",
         stage: "CAPTURED",
-        dealValue: 0,
+        dealValue,
         createdAt,
         contactedAt: null,
       }),
