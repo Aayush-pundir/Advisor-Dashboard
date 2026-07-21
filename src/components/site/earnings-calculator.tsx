@@ -6,13 +6,15 @@ import {
   DEFAULT_ANNUAL_CHURN,
   ltvCommissionPerClient,
   expectedTrailingYears,
+  acvFromExpenditure,
 } from "@/lib/enums";
 
 export function EarningsCalculator() {
   const [clients, setClients] = useState(10);
-  const [acv, setAcv] = useState(500000);
+  const [expenditure, setExpenditure] = useState(25000000);
 
   const { year1Total, trailingTotal, lifetimeTotal, tenureYears } = useMemo(() => {
+    const acv = acvFromExpenditure(expenditure);
     const perClient = ltvCommissionPerClient(acv, DEFAULT_ANNUAL_CHURN);
     return {
       year1Total: perClient.year1 * clients,
@@ -20,7 +22,7 @@ export function EarningsCalculator() {
       lifetimeTotal: perClient.total * clients,
       tenureYears: 1 + expectedTrailingYears(DEFAULT_ANNUAL_CHURN),
     };
-  }, [clients, acv]);
+  }, [clients, expenditure]);
 
   return (
     <div
@@ -70,24 +72,24 @@ export function EarningsCalculator() {
         <div>
           <div className="flex items-baseline justify-between">
             <span className="text-[13px] font-semibold text-[#1B1714]/70">
-              Avg. contract value / client / yr
+              Client&apos;s avg. annual expenditure
             </span>
             <span className="font-[family-name:var(--font-plex-serif)] text-lg font-semibold text-[#171310]">
-              {formatINR(acv)}
+              {formatINR(expenditure)}
             </span>
           </div>
           <input
             type="range"
-            min={100000}
-            max={5000000}
-            step={50000}
-            value={acv}
-            onChange={(e) => setAcv(Number(e.target.value))}
+            min={5000000}
+            max={250000000}
+            step={2500000}
+            value={expenditure}
+            onChange={(e) => setExpenditure(Number(e.target.value))}
             className="mt-3 w-full accent-[#D6362B]"
           />
           <div className="mt-1 flex justify-between text-[11px] text-[#1B1714]/45">
-            <span>Rs 1L</span>
             <span>Rs 50L</span>
+            <span>Rs 25Cr</span>
           </div>
         </div>
       </div>
@@ -133,7 +135,7 @@ export function EarningsCalculator() {
         years on average — Year-1 fee is auto-credited on go-live, trailing
         fees credit every year the client renews.
         <br />
-        Note: Calculated considering a 10% churn.
+        Note: Contract value assumed at 2% of client expenditure, calculated considering a 10% churn.
       </p>
     </div>
   );

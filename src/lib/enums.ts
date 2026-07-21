@@ -184,6 +184,16 @@ export function expectedTrailingYears(annualChurn: number) {
   return (1 - annualChurn) / annualChurn;
 }
 
+/** The earnings calculator takes a client's average expenditure (spend
+ * processed through OmniCard) rather than contract value directly, since
+ * that's what a CA can actually estimate for a prospective client. Contract
+ * value is derived as this fixed percentage of that expenditure. */
+export const ACV_PERCENT_OF_EXPENDITURE = 0.02;
+
+export function acvFromExpenditure(expenditure: number) {
+  return expenditure * ACV_PERCENT_OF_EXPENDITURE;
+}
+
 /** Per-client lifetime commission (Year-1 + expected trailing years), given ACV. */
 export function ltvCommissionPerClient(acv: number, annualChurn: number) {
   const year1 = acv * YEAR1_RATE;
