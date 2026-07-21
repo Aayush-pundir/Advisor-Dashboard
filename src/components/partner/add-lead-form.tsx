@@ -87,7 +87,11 @@ export function AddLeadForm() {
             size="sm"
             variant="outline"
             disabled={!preview}
-            onClick={() => setShowPreview(true)}
+            onClick={() => {
+              if (!preview) return;
+              setEstimatedValue(preview.acv);
+              setShowPreview(true);
+            }}
           >
             Preview advisory fee
           </Button>
@@ -151,19 +155,6 @@ export function AddLeadForm() {
                 <span className="text-brand-dark">Total lifetime value</span>
                 <span className="font-semibold text-brand-dark">{formatINR(preview.total)}</span>
               </div>
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  setEstimatedValue(preview.acv);
-                  setShowPreview(false);
-                }}
-              >
-                Use this estimate
-              </Button>
             </div>
           </div>
         </div>
