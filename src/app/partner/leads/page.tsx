@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatINR, formatDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -88,15 +89,17 @@ async function LeadsTab({
   category?: string;
   source?: string;
 }) {
-  const leads = await db.lead.findMany({
-    where: {
-      partnerId,
-      ...(stage ? { stage } : {}),
-      ...(category ? { category } : {}),
-      ...(source ? { source } : {}),
-    },
+  const allLeads = await db.lead.findMany({
+    where: { partnerId },
     orderBy: { createdAt: "desc" },
   });
+
+  const leads = allLeads.filter(
+    (l) =>
+      (!stage || l.stage === stage) &&
+      (!category || l.category === category) &&
+      (!source || l.source === source),
+  );
 
   const hasFilters = !!(stage || category || source);
 
@@ -116,6 +119,26 @@ async function LeadsTab({
         <LeadsBulkUploader />
         <CsvExportButton href="/partner/leads/export" />
       </div>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Pipeline by stage</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {(Object.keys(LEAD_STAGE_LABELS) as LeadStage[])
+            .filter((s) => s !== "CLOSED_LOST")
+            .map((s) => {
+              const count = allLeads.filter((l) => l.stage === s).length;
+              return (
+                <div key={s} className="flex items-center gap-3">
+                  <span className="w-32 shrink-0 text-sm text-muted">{LEAD_STAGE_LABELS[s]}</span>
+                  <Progress value={allLeads.length ? (count / allLeads.length) * 100 : 0} className="flex-1" />
+                  <span className="w-6 text-right text-sm font-medium">{count}</span>
+                </div>
+              );
+            })}
+        </CardContent>
+      </Card>
 
       <form method="GET" className="mt-4 flex flex-wrap items-end gap-3">
         <div>

@@ -7,10 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/utils";
-import { LEAD_STAGE_LABELS, type LeadStage } from "@/lib/enums";
 import { OnboardingTimeline } from "@/components/partner/onboarding-timeline";
 import { WhatsNextCard } from "@/components/partner/whats-next-card";
 import { CopyLinkButton } from "@/components/partner/copy-link-button";
+import { DashboardCalculator } from "@/components/partner/dashboard-calculator";
 
 export default async function PartnerDashboardPage() {
   const session = await getSession();
@@ -79,26 +79,10 @@ export default async function PartnerDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Pipeline by stage</CardTitle>
+            <CardTitle>Model your earnings</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {(Object.keys(LEAD_STAGE_LABELS) as LeadStage[])
-              .filter((s) => s !== "CLOSED_LOST")
-              .map((stage) => {
-                const count = data.leads.filter((l) => l.stage === stage).length;
-                return (
-                  <div key={stage} className="flex items-center gap-3">
-                    <span className="w-32 shrink-0 text-sm text-muted">
-                      {LEAD_STAGE_LABELS[stage]}
-                    </span>
-                    <Progress
-                      value={data.leads.length ? (count / data.leads.length) * 100 : 0}
-                      className="flex-1"
-                    />
-                    <span className="w-6 text-right text-sm font-medium">{count}</span>
-                  </div>
-                );
-              })}
+          <CardContent>
+            <DashboardCalculator />
           </CardContent>
         </Card>
 
