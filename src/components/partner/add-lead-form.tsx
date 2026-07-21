@@ -121,10 +121,22 @@ export function AddLeadForm() {
             className="w-full max-w-sm rounded-xl border border-border bg-surface p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <p className="text-sm font-semibold">Advisory fee potential</p>
-            <p className="mt-1 text-xs text-muted">
-              Based on {formatINR(Number(expenditure))} in annual expenditure for this client.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">Advisory fee potential</p>
+                <p className="mt-1 text-xs text-muted">
+                  Based on {formatINR(Number(expenditure))} in annual expenditure for this client.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPreview(false)}
+                aria-label="Close"
+                className="shrink-0 text-lg leading-none text-muted hover:text-foreground"
+              >
+                &times;
+              </button>
+            </div>
 
             <div className="mt-4 grid gap-2">
               <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm">
@@ -141,10 +153,7 @@ export function AddLeadForm() {
               </div>
             </div>
 
-            <div className="mt-4 flex justify-end gap-2">
-              <Button type="button" size="sm" variant="outline" onClick={() => setShowPreview(false)}>
-                Cancel
-              </Button>
+            <div className="mt-4 flex justify-end">
               <Button
                 type="button"
                 size="sm"
