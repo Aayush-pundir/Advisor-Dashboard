@@ -21,7 +21,8 @@ export default async function AdminOverviewPage() {
     totalClientsOnboarded,
     totalRevenue,
     totalAdvisoryFeesPaid,
-    badgeCounts,
+    eliteClubCount,
+    badgesThisMonth,
   } = await getAdminOverview();
 
   const [pendingAccept, pendingCountersign, awaitingDemo, openTickets] = await Promise.all([
@@ -110,18 +111,14 @@ export default async function AdminOverviewPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-t-4 border-t-silver p-4 text-center">
-          <p className="text-xs uppercase text-muted">Silver badges</p>
-          <p className="mt-1 text-xl font-semibold">{badgeCounts.SILVER ?? 0}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="border-t-4 border-t-platinum p-4 text-center">
+          <p className="text-xs uppercase text-muted">Elite Club members</p>
+          <p className="mt-1 text-xl font-semibold">{eliteClubCount}</p>
         </Card>
         <Card className="border-t-4 border-t-gold p-4 text-center">
-          <p className="text-xs uppercase text-muted">Gold badges</p>
-          <p className="mt-1 text-xl font-semibold">{badgeCounts.GOLD ?? 0}</p>
-        </Card>
-        <Card className="border-t-4 border-t-platinum p-4 text-center">
-          <p className="text-xs uppercase text-muted">Platinum badges</p>
-          <p className="mt-1 text-xl font-semibold">{badgeCounts.PLATINUM ?? 0}</p>
+          <p className="text-xs uppercase text-muted">Milestones issued this month</p>
+          <p className="mt-1 text-xl font-semibold">{badgesThisMonth}</p>
         </Card>
       </div>
 

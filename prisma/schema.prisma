@@ -151,8 +151,11 @@ model Partner {
   icpDigital  Int @default(0) // /10
   icpMindset  Int @default(0) // /10
 
-  badgeTier     String    @default("NONE")
-  tierUpdatedAt DateTime?
+  badgeTier         String    @default("NONE") // current milestone reached in this anniversary year — resets in spirit each year (recomputed fresh, never decremented)
+  tierUpdatedAt     DateTime?
+  eliteClubMember   Boolean   @default(false) // permanent once true — reached CLIENT_25 in a single anniversary year; badgeTier progression no longer applies
+  eliteMemberSince  DateTime?
+  eliteBenefitsIssued Int     @default(0) // count of "every 5th lifetime client" Elite benefits issued since induction
   certLevel     String    @default("NONE") // NONE | DEMO | PRODUCT | SALES — Step-up certification track
   referralCode  String    @unique
   mouVersion    String    @default("v1")
@@ -319,16 +322,17 @@ model ReferralBonus {
 // ---------------------------------------------------------------------------
 
 model Badge {
-  id                 String    @id @default(cuid())
-  partnerId          String
-  partner            Partner   @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  id        String  @id @default(cuid())
+  partnerId String
+  partner   Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  // CLIENT_1 | CLIENT_3 | CLIENT_5 | CLIENT_10 | CLIENT_15 | CLIENT_20 | CLIENT_25 | ELITE_BENEFIT
   tier               String
-  quarter            String // e.g. "2026-Q3"
+  period             String // anniversary-year label e.g. "Y1", "Y2" — or "ELITE_30", "ELITE_35" for Elite Club benefits (lifetime, not year-bound)
   clientsAtMilestone Int
   issuedAt           DateTime  @default(now())
   giftDispatchedAt   DateTime?
 
-  @@unique([partnerId, quarter, tier])
+  @@unique([partnerId, period, tier])
 }
 
 // ---------------------------------------------------------------------------

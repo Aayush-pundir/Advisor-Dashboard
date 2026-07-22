@@ -29,29 +29,103 @@ export const PARTNER_STAGE_LABELS: Record<PartnerStage, string> = {
   DORMANT: "Dormant",
 };
 
-export const BADGE_TIERS = ["NONE", "SILVER", "GOLD", "PLATINUM"] as const;
-export type BadgeTier = (typeof BADGE_TIERS)[number];
+/**
+ * Milestone recognition ladder — replaces the old quarterly Silver/Gold/
+ * Platinum cash-voucher tiers with PR/visibility rewards that escalate
+ * with each client referred. Every tier restarts fresh each anniversary
+ * year (12 months from the partner's certifiedAt date) EXCEPT once a
+ * partner reaches CLIENT_25 within a single anniversary year, at which
+ * point they're permanently inducted into the Elite Club and the yearly
+ * reset no longer applies to them — see Partner.eliteClubMember.
+ */
+export const MILESTONE_TIERS = [
+  "NONE",
+  "CLIENT_1",
+  "CLIENT_3",
+  "CLIENT_5",
+  "CLIENT_10",
+  "CLIENT_15",
+  "CLIENT_20",
+  "CLIENT_25",
+] as const;
+export type MilestoneTier = (typeof MILESTONE_TIERS)[number];
 
-export const BADGE_TIER_META: Record<
-  Exclude<BadgeTier, "NONE">,
-  { threshold: number; gift: string; color: string }
+export const MILESTONE_TIER_META: Record<
+  Exclude<MilestoneTier, "NONE">,
+  { threshold: number; label: string; reward: string }
 > = {
-  SILVER: {
+  CLIENT_1: {
+    threshold: 1,
+    label: "1st Client",
+    reward:
+      "Partner Spotlight across OmniCard's LinkedIn and social media channels, welcoming your firm as an official OmniCard Implementation Advisor.",
+  },
+  CLIENT_3: {
+    threshold: 3,
+    label: "3rd Client",
+    reward:
+      "Partner Spotlight in OmniCard's newsletter, introducing your firm to our growing network of founders, CFOs, and finance leaders.",
+  },
+  CLIENT_5: {
     threshold: 5,
-    gift: "Premium gift hamper + Rs 5,000 voucher",
-    color: "#94a3b8",
+    label: "5th Client",
+    reward:
+      "Verified OmniCard Implementation Advisor profile featured on OmniCard's Verified Advisor Network, including a backlink to your firm's website and LinkedIn profile for enhanced credibility and SEO.",
   },
-  GOLD: {
+  CLIENT_10: {
     threshold: 10,
-    gift: "Smartwatch / premium gadget + Rs 15,000 voucher",
-    color: "#d4a017",
+    label: "10th Client",
+    reward:
+      "Exclusive Webinar Opportunity — host a webinar on a topic of your choice, promoted to OmniCard's corporate client base. Attendee list shared with your firm for business development.",
   },
-  PLATINUM: {
-    threshold: 50,
-    gift: "International trip for two / MacBook + Rs 50,000 voucher",
-    color: "#171310",
+  CLIENT_15: {
+    threshold: 15,
+    label: "15th Client",
+    reward:
+      "Co-Authored Success Story / Whitepaper published under OmniCard + your firm's branding, distributed across our website, newsletters, and partner ecosystem.",
+  },
+  CLIENT_20: {
+    threshold: 20,
+    label: "20th Client",
+    reward:
+      "Speaking Opportunity at an OmniCard-sponsored flagship event, presenting before founders, CFOs, finance leaders, and enterprise decision-makers.",
+  },
+  CLIENT_25: {
+    threshold: 25,
+    label: "25th Client",
+    reward:
+      "Exclusive Media Interview with the Managing Partner, professionally produced by OmniCard and promoted across our website, LinkedIn, YouTube, newsletters, and partner network.",
   },
 };
+
+/** Clients within one anniversary year needed to be inducted into the
+ * Elite Club — permanent status, never resets. */
+export const ELITE_CLUB_THRESHOLD = 25;
+
+/** Once in the Elite Club, benefits are lifetime-cumulative (not
+ * year-bound): one more benefit every N additional clients closed. */
+export const ELITE_CLUB_BENEFIT_INTERVAL = 5;
+
+export const ELITE_CLUB_BENEFIT_DESCRIPTION =
+  "One exclusive Elite Club Benefit — CXO Roundtables, Exclusive PR & Media Features, Leadership Networking Dinners, Speaking Opportunities, Thought Leadership Initiatives, Co-Marketing Campaigns, Partner Advisory Sessions, or another premium branding/networking opportunity, as determined by OmniCard.";
+
+/** The current anniversary-year window for a partner, 1-based (Y1 = the
+ * first 12 months after certification). Falls back to year 1 starting
+ * now if certifiedAt is unset (shouldn't happen for certified partners). */
+export function anniversaryYearWindow(certifiedAt: Date | null, now: Date = new Date()) {
+  const anchor = certifiedAt ?? now;
+  let yearIndex = 1;
+  let start = new Date(anchor);
+  for (;;) {
+    const next = new Date(start);
+    next.setFullYear(start.getFullYear() + 1);
+    if (next > now) {
+      return { yearIndex, start, end: next };
+    }
+    start = next;
+    yearIndex++;
+  }
+}
 
 
 export const LEAD_SOURCES = [

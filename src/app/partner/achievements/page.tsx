@@ -5,11 +5,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate, formatINR, quarterStart, maskFirmName } from "@/lib/utils";
 import {
-  BADGE_TIER_META,
+  MILESTONE_TIERS,
+  MILESTONE_TIER_META,
+  ELITE_CLUB_BENEFIT_DESCRIPTION,
   CERT_LEVELS,
   CERT_LEVEL_LABELS,
   CERT_MODULES,
-  type BadgeTier,
+  type MilestoneTier,
   type CertLevel,
 } from "@/lib/enums";
 import { CertModuleButton } from "@/components/partner/cert-module-button";
@@ -59,61 +61,77 @@ export default async function PartnerAchievementsPage({
   );
 }
 
-const tierColor: Record<Exclude<BadgeTier, "NONE">, string> = {
-  SILVER: "border-t-silver",
-  GOLD: "border-t-gold",
-  PLATINUM: "border-t-platinum",
-};
-
 async function BadgesTab() {
   const session = await getSession();
-  const badges = await db.badge.findMany({
-    where: { partnerId: session!.partnerId! },
-    orderBy: { issuedAt: "desc" },
-  });
+  const [partner, badges] = await Promise.all([
+    db.partner.findUniqueOrThrow({ where: { id: session!.partnerId! } }),
+    db.badge.findMany({
+      where: { partnerId: session!.partnerId! },
+      orderBy: { issuedAt: "desc" },
+    }),
+  ]);
+
+  const milestoneOrder = MILESTONE_TIERS.filter((t) => t !== "NONE") as Exclude<MilestoneTier, "NONE">[];
 
   return (
     <div className="mt-6">
       <p className="text-sm text-muted">
-        5 / 10 / 50 clients in a quarter earns Silver / Gold / Platinum — auto-issued the day the milestone client goes live.
+        Refer 1 / 3 / 5 / 10 / 15 / 20 / 25 clients within your current anniversary year (12 months from
+        certification) to climb the ladder — auto-issued the day the milestone client goes live. Reach 25 in a
+        single year and you&apos;re inducted into the Elite Club for good.
       </p>
-      <div className="mt-4 grid gap-4 sm:grid-cols-3">
-        {(["SILVER", "GOLD", "PLATINUM"] as const).map((tier) => {
-          const meta = BADGE_TIER_META[tier];
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {milestoneOrder.map((tier) => {
+          const meta = MILESTONE_TIER_META[tier];
           const earned = badges.filter((b) => b.tier === tier);
           return (
-            <Card key={tier} className={cn("border-t-4 p-5", tierColor[tier])}>
-              <p className="text-xs font-semibold uppercase text-muted">{tier} Advisor</p>
-              <p className="mt-1 text-lg font-semibold">{meta.threshold} clients / quarter</p>
-              <p className="mt-1 text-sm text-muted">{meta.gift}</p>
+            <Card key={tier} className="p-5">
+              <p className="text-xs font-semibold uppercase text-muted">{meta.label}</p>
+              <p className="mt-1 text-sm text-muted">{meta.reward}</p>
               <p className="mt-3 text-xs font-medium text-brand-dark">Earned {earned.length}&times;</p>
             </Card>
           );
         })}
+        <Card className={cn("border-t-4 border-t-platinum p-5", partner.eliteClubMember && "bg-brand-light/40")}>
+          <p className="text-xs font-semibold uppercase text-muted">Elite Club</p>
+          <p className="mt-1 text-sm text-muted">{ELITE_CLUB_BENEFIT_DESCRIPTION}</p>
+          <p className="mt-3 text-xs font-medium text-brand-dark">
+            {partner.eliteClubMember
+              ? `Member since ${formatDate(partner.eliteMemberSince!)} — ${partner.eliteBenefitsIssued} benefit(s) unlocked`
+              : "Reach 25 clients in one anniversary year to join"}
+          </p>
+        </Card>
       </div>
 
       <Card className="mt-6 divide-y divide-border">
         {badges.map((b) => (
           <div key={b.id} className="flex items-center justify-between p-4 text-sm">
             <span>
-              {b.tier} — {b.quarter} ({b.clientsAtMilestone} clients)
+              {b.tier === "ELITE_BENEFIT" ? "Elite Club benefit" : MILESTONE_TIER_META[b.tier as Exclude<MilestoneTier, "NONE">].label}
+              {" — "}
+              {b.period} ({b.clientsAtMilestone} clients)
             </span>
             <span className="text-muted">{formatDate(b.issuedAt)}</span>
           </div>
         ))}
         {badges.length === 0 && (
-          <p className="p-6 text-center text-muted">No badges earned yet — close your first 5 clients this quarter.</p>
+          <p className="p-6 text-center text-muted">No milestones earned yet — close your first client to get started.</p>
         )}
       </Card>
     </div>
   );
 }
 
-const tierVariant: Record<BadgeTier, "neutral" | "silver" | "gold" | "platinum"> = {
+const tierVariant: Record<MilestoneTier, "neutral" | "silver" | "gold" | "platinum"> = {
   NONE: "neutral",
-  SILVER: "silver",
-  GOLD: "gold",
-  PLATINUM: "platinum",
+  CLIENT_1: "neutral",
+  CLIENT_3: "neutral",
+  CLIENT_5: "silver",
+  CLIENT_10: "silver",
+  CLIENT_15: "gold",
+  CLIENT_20: "gold",
+  CLIENT_25: "platinum",
 };
 
 async function LeaderboardTab() {
@@ -132,7 +150,8 @@ async function LeaderboardTab() {
       id: p.id,
       firmName: p.firmName,
       city: p.city,
-      badgeTier: p.badgeTier as BadgeTier,
+      badgeTier: p.badgeTier as MilestoneTier,
+      eliteClubMember: p.eliteClubMember,
       clients: p.leads.length,
       revenue: p.leads.reduce((s, l) => s + l.dealValue, 0),
     }))
@@ -142,9 +161,7 @@ async function LeaderboardTab() {
 
   return (
     <div className="mt-6">
-      <p className="text-sm text-muted">
-        Top advisors this quarter, ranked by clients closed — the same milestone count that drives your badge.
-      </p>
+      <p className="text-sm text-muted">Top advisors this quarter, ranked by clients closed.</p>
       <Card className="mt-4 divide-y divide-border">
         {ranked.map((p, i) => (
           <div
@@ -166,7 +183,13 @@ async function LeaderboardTab() {
                 <p className="text-sm font-semibold">{p.clients} clients</p>
                 <p className="text-xs text-muted">{formatINR(p.revenue)}</p>
               </div>
-              {p.badgeTier !== "NONE" && <Badge variant={tierVariant[p.badgeTier]}>{p.badgeTier}</Badge>}
+              {p.eliteClubMember ? (
+                <Badge variant="platinum">Elite Club</Badge>
+              ) : (
+                p.badgeTier !== "NONE" && (
+                  <Badge variant={tierVariant[p.badgeTier]}>{MILESTONE_TIER_META[p.badgeTier as Exclude<MilestoneTier, "NONE">].label}</Badge>
+                )
+              )}
             </div>
           </div>
         ))}

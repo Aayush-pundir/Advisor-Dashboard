@@ -11,9 +11,11 @@ import {
   CERT_LEVEL_LABELS,
   LEAD_STAGES,
   LEAD_STAGE_LABELS,
+  MILESTONE_TIER_META,
   type PartnerStage,
   type CertLevel,
   type LeadStage,
+  type MilestoneTier,
 } from "@/lib/enums";
 import {
   completeMouCountersignAction,
@@ -148,7 +150,16 @@ export default async function AdminPartnerDetailPage({ params }: { params: Promi
         <StatTile label="Successfully converted leads" value={String(convertedLeads.length)} />
         <StatTile label="Revenue generated" value={formatINR(totalRevenue)} />
         <StatTile label="Total advisory fees" value={formatINR(totalAdvisoryFees)} />
-        <StatTile label="Tier" value={partner.badgeTier} />
+        <StatTile
+          label="Milestone tier"
+          value={
+            partner.eliteClubMember
+              ? "Elite Club"
+              : partner.badgeTier === "NONE"
+                ? "None yet"
+                : MILESTONE_TIER_META[partner.badgeTier as Exclude<MilestoneTier, "NONE">].label
+          }
+        />
         <StatTile label="Certification" value={CERT_LEVEL_LABELS[partner.certLevel as CertLevel]} />
       </div>
 

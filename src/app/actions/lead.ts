@@ -2,10 +2,20 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { YEAR1_RATE, TRAILING_RATE, BADGE_TIER_META, REFERRAL_HAMPER_VALUE } from "@/lib/enums";
-import type { LeadStage, BadgeTier, UserRole } from "@/lib/enums";
+import {
+  YEAR1_RATE,
+  TRAILING_RATE,
+  REFERRAL_HAMPER_VALUE,
+  MILESTONE_TIERS,
+  MILESTONE_TIER_META,
+  ELITE_CLUB_THRESHOLD,
+  ELITE_CLUB_BENEFIT_INTERVAL,
+  ELITE_CLUB_BENEFIT_DESCRIPTION,
+  anniversaryYearWindow,
+} from "@/lib/enums";
+import type { LeadStage, UserRole } from "@/lib/enums";
 import { notifyPartnerUsers } from "@/lib/notify";
-import { formatINR, quarterLabel, quarterStart } from "@/lib/utils";
+import { formatINR } from "@/lib/utils";
 import { getAuthedUser, getSession } from "@/lib/auth";
 import { canManageLeads, ForbiddenError } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
@@ -15,7 +25,7 @@ import { notifyInternalUsers } from "@/lib/notify";
 import { findConflictingLead, conflictErrorMessage } from "@/lib/lead-conflict";
 import { computeLeadScore } from "@/lib/lead-scoring";
 
-const TIER_ORDER: Exclude<BadgeTier, "NONE">[] = ["SILVER", "GOLD", "PLATINUM"];
+const MILESTONE_ORDER = MILESTONE_TIERS.filter((t) => t !== "NONE");
 
 /** Partner: add a single client lead one at a time, as an alternative to
  * the bulk CSV upload — same destination (the Lead pipeline), just a
@@ -250,38 +260,83 @@ export async function reassignLeadAction(leadId: string, assignedToId: string) {
   revalidatePath("/admin/ops");
 }
 
+/** Awards milestone recognitions on every client close. Elite Club members
+ * (permanent once reached) accrue lifetime benefits every N clients; everyone
+ * else climbs the 7-tier ladder fresh within their current anniversary year —
+ * see anniversaryYearWindow and the Milestone recognition ladder comment in
+ * lib/enums.ts. */
 async function checkMilestoneBadges(partnerId: string) {
-  const now = new Date();
-  const quarter = quarterLabel(now);
-
-  const clientsThisQuarter = await db.lead.count({
-    where: {
-      partnerId,
-      stage: "CLOSED_WON",
-      closedAt: { gte: quarterStart(now) },
-    },
+  const partner = await db.partner.findUnique({
+    where: { id: partnerId },
+    select: { certifiedAt: true, eliteClubMember: true, eliteBenefitsIssued: true },
   });
+  if (!partner) return;
 
-  for (const tier of TIER_ORDER) {
-    const threshold = BADGE_TIER_META[tier].threshold;
-    if (clientsThisQuarter < threshold) continue;
+  if (partner.eliteClubMember) {
+    const totalClients = await db.lead.count({ where: { partnerId, stage: "CLOSED_WON" } });
+    const nextBenefitAt =
+      ELITE_CLUB_THRESHOLD + (partner.eliteBenefitsIssued + 1) * ELITE_CLUB_BENEFIT_INTERVAL;
+    if (totalClients < nextBenefitAt) return;
+
+    const period = `ELITE_${nextBenefitAt}`;
+    const existing = await db.badge.findUnique({
+      where: { partnerId_period_tier: { partnerId, period, tier: "ELITE_BENEFIT" } },
+    });
+    if (existing) return;
+
+    await db.badge.create({
+      data: { partnerId, tier: "ELITE_BENEFIT", period, clientsAtMilestone: totalClients },
+    });
+    await db.partner.update({ where: { id: partnerId }, data: { eliteBenefitsIssued: { increment: 1 } } });
+
+    await notifyPartnerUsers(partnerId, {
+      type: "BADGE_EARNED",
+      title: "New Elite Club Benefit unlocked!",
+      body: `${totalClients} clients closed lifetime — ${ELITE_CLUB_BENEFIT_DESCRIPTION}`,
+      href: "/partner/achievements",
+    });
+    return;
+  }
+
+  const { yearIndex, start } = anniversaryYearWindow(partner.certifiedAt);
+  const clientsThisYear = await db.lead.count({
+    where: { partnerId, stage: "CLOSED_WON", closedAt: { gte: start } },
+  });
+  const period = `Y${yearIndex}`;
+
+  for (const tier of MILESTONE_ORDER) {
+    const threshold = MILESTONE_TIER_META[tier].threshold;
+    if (clientsThisYear < threshold) continue;
 
     const existing = await db.badge.findUnique({
-      where: { partnerId_quarter_tier: { partnerId, quarter, tier } },
+      where: { partnerId_period_tier: { partnerId, period, tier } },
     });
     if (existing) continue;
 
     await db.badge.create({
-      data: { partnerId, tier, quarter, clientsAtMilestone: clientsThisQuarter },
+      data: { partnerId, tier, period, clientsAtMilestone: clientsThisYear },
     });
     await db.partner.update({ where: { id: partnerId }, data: { badgeTier: tier, tierUpdatedAt: new Date() } });
 
     await notifyPartnerUsers(partnerId, {
       type: "BADGE_EARNED",
-      title: `${tier} Advisor badge earned!`,
-      body: `${clientsThisQuarter} clients closed this quarter — ${BADGE_TIER_META[tier].gift}.`,
+      title: `${MILESTONE_TIER_META[tier].label} milestone reached!`,
+      body: `${clientsThisYear} clients closed this year — ${MILESTONE_TIER_META[tier].reward}`,
       href: "/partner/achievements",
     });
+
+    if (tier === "CLIENT_25") {
+      await db.partner.update({
+        where: { id: partnerId },
+        data: { eliteClubMember: true, eliteMemberSince: new Date() },
+      });
+      await notifyPartnerUsers(partnerId, {
+        type: "BADGE_EARNED",
+        title: "Welcome to the OmniCard Elite Club!",
+        body: "You've been permanently inducted into the Elite Club — every 5th client from here unlocks a new Elite benefit.",
+        href: "/partner/achievements",
+      });
+    }
   }
 }
 

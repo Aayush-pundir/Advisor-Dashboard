@@ -625,9 +625,9 @@ export async function mergePartnersAction(
     db.badge.findMany({ where: { partnerId: survivorId } }),
     db.badge.findMany({ where: { partnerId: mergedId } }),
   ]);
-  const survivorBadgeKeys = new Set(survivorBadges.map((b) => `${b.quarter}:${b.tier}`));
+  const survivorBadgeKeys = new Set(survivorBadges.map((b) => `${b.period}:${b.tier}`));
   for (const b of mergedBadges) {
-    if (!survivorBadgeKeys.has(`${b.quarter}:${b.tier}`)) {
+    if (!survivorBadgeKeys.has(`${b.period}:${b.tier}`)) {
       await db.badge.update({ where: { id: b.id }, data: { partnerId: survivorId } });
     }
   }

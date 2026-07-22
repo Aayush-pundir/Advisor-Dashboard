@@ -3,13 +3,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { db } from "@/lib/db";
 import Link from "next/link";
-import type { BadgeTier } from "@/lib/enums";
+import { MILESTONE_TIER_META, type MilestoneTier } from "@/lib/enums";
 
-const badgeVariant: Record<BadgeTier, "neutral" | "silver" | "gold" | "platinum"> = {
+const badgeVariant: Record<MilestoneTier, "neutral" | "silver" | "gold" | "platinum"> = {
   NONE: "neutral",
-  SILVER: "silver",
-  GOLD: "gold",
-  PLATINUM: "platinum",
+  CLIENT_1: "neutral",
+  CLIENT_3: "neutral",
+  CLIENT_5: "silver",
+  CLIENT_10: "silver",
+  CLIENT_15: "gold",
+  CLIENT_20: "gold",
+  CLIENT_25: "platinum",
 };
 
 export default async function DirectoryPage() {
@@ -40,10 +44,14 @@ export default async function DirectoryPage() {
                       {p.contactName} &middot; {p.city}, {p.state}
                     </p>
                   </div>
-                  {p.badgeTier !== "NONE" && (
-                    <Badge variant={badgeVariant[p.badgeTier as BadgeTier]}>
-                      {p.badgeTier}
-                    </Badge>
+                  {p.eliteClubMember ? (
+                    <Badge variant="platinum">Elite Club</Badge>
+                  ) : (
+                    p.badgeTier !== "NONE" && (
+                      <Badge variant={badgeVariant[p.badgeTier as MilestoneTier]}>
+                        {MILESTONE_TIER_META[p.badgeTier as Exclude<MilestoneTier, "NONE">].label}
+                      </Badge>
+                    )
                   )}
                 </div>
                 <p className="mt-3 text-xs text-muted">

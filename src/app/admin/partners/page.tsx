@@ -10,11 +10,13 @@ import { buildDuplicateMap } from "@/lib/duplicate-detection";
 import {
   PARTNER_STAGES,
   PARTNER_STAGE_LABELS,
-  BADGE_TIERS,
+  MILESTONE_TIERS,
+  MILESTONE_TIER_META,
   CERT_LEVELS,
   CERT_LEVEL_LABELS,
   type PartnerStage,
   type CertLevel,
+  type MilestoneTier,
 } from "@/lib/enums";
 
 const stageVariant: Record<PartnerStage, "neutral" | "default" | "warning" | "success"> = {
@@ -38,7 +40,7 @@ export default async function AdminPartnersPage({
     db.partner.findMany({
       where: {
         ...(stage ? { stage } : {}),
-        ...(tier ? { badgeTier: tier } : {}),
+        ...(tier === "ELITE" ? { eliteClubMember: true } : tier ? { badgeTier: tier } : {}),
         ...(cert ? { certLevel: cert } : {}),
         ...(city ? { city: { contains: city } } : {}),
       },
@@ -117,9 +119,10 @@ export default async function AdminPartnersPage({
             className="mt-1 rounded-lg border border-border bg-transparent px-3 py-2 text-sm outline-none focus:border-brand"
           >
             <option value="">All tiers</option>
-            {BADGE_TIERS.map((t) => (
+            <option value="ELITE">Elite Club</option>
+            {MILESTONE_TIERS.filter((t) => t !== "NONE").map((t) => (
               <option key={t} value={t}>
-                {t}
+                {MILESTONE_TIER_META[t as Exclude<MilestoneTier, "NONE">].label}
               </option>
             ))}
           </select>
@@ -205,7 +208,13 @@ export default async function AdminPartnersPage({
                       {PARTNER_STAGE_LABELS[p.stage as PartnerStage]}
                     </Badge>
                   </td>
-                  <td className="p-3 text-muted" data-label="Tier">{p.badgeTier}</td>
+                  <td className="p-3 text-muted" data-label="Tier">
+                    {p.eliteClubMember
+                      ? "Elite Club"
+                      : p.badgeTier === "NONE"
+                        ? "—"
+                        : MILESTONE_TIER_META[p.badgeTier as Exclude<MilestoneTier, "NONE">].label}
+                  </td>
                   <td className="p-3 text-muted" data-label="Certification">{CERT_LEVEL_LABELS[p.certLevel as CertLevel]}</td>
                   <td className="p-3" data-label="Live page">
                     {p.stage === "CERTIFIED" || p.stage === "ACTIVE" ? (

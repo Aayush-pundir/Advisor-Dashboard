@@ -21,7 +21,7 @@ export default async function PartnerDashboardPage() {
   }
 
   const data = await getPartnerDashboard(session!.partnerId!);
-  const { partner, pipeline, closedWon, totalEarned, pendingEarnings, clientsThisQuarter, nextTier, cityRank, cityTotal } = data;
+  const { partner, pipeline, closedWon, totalEarned, pendingEarnings, milestoneProgress, cityRank, cityTotal } = data;
 
   const referralLink = `omnicard.in/advisor/${partner.slug}`;
   const referralQrCode = await QRCode.toDataURL(`https://${referralLink}`);
@@ -91,26 +91,46 @@ export default async function PartnerDashboardPage() {
             <CardTitle>Milestone progress</CardTitle>
           </CardHeader>
           <CardContent>
-            {nextTier ? (
+            {milestoneProgress.type === "elite" ? (
               <>
                 <div className="flex items-center justify-between text-sm">
-                  <span>
-                    {clientsThisQuarter} / {nextTier.threshold} clients this quarter
-                  </span>
-                  <Badge variant="default">{nextTier.tier}</Badge>
+                  <span>{milestoneProgress.totalClients} clients closed lifetime</span>
+                  <Badge variant="platinum">Elite Club</Badge>
                 </div>
                 <Progress
-                  value={(clientsThisQuarter / nextTier.threshold) * 100}
+                  value={
+                    ((milestoneProgress.totalClients - (milestoneProgress.nextBenefitAt - 5)) / 5) * 100
+                  }
                   className="mt-2"
                 />
                 <p className="mt-3 text-xs text-muted">
-                  Reach {nextTier.threshold} clients this quarter to unlock:{" "}
-                  {nextTier.gift}
+                  {milestoneProgress.benefitsIssued > 0
+                    ? `${milestoneProgress.benefitsIssued} Elite benefit${milestoneProgress.benefitsIssued > 1 ? "s" : ""} unlocked so far. `
+                    : ""}
+                  Reach {milestoneProgress.nextBenefitAt} clients lifetime to unlock:{" "}
+                  {milestoneProgress.benefitDescription}
+                </p>
+              </>
+            ) : milestoneProgress.nextTier ? (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span>
+                    {milestoneProgress.clientsThisYear} / {milestoneProgress.nextTier.threshold} clients this year
+                  </span>
+                  <Badge variant="default">{milestoneProgress.nextTier.label}</Badge>
+                </div>
+                <Progress
+                  value={(milestoneProgress.clientsThisYear / milestoneProgress.nextTier.threshold) * 100}
+                  className="mt-2"
+                />
+                <p className="mt-3 text-xs text-muted">
+                  Reach {milestoneProgress.nextTier.threshold} clients this year to unlock:{" "}
+                  {milestoneProgress.nextTier.reward}
                 </p>
               </>
             ) : (
               <p className="text-sm text-muted">
-                You&apos;ve hit Platinum — the top tier. Keep the streak going!
+                You&apos;ve hit every milestone this year — keep the streak going!
               </p>
             )}
 

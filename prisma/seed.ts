@@ -1,6 +1,14 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { YEAR1_RATE, TRAILING_RATE } from "../src/lib/enums";
+import {
+  YEAR1_RATE,
+  TRAILING_RATE,
+  MILESTONE_TIER_META,
+  ELITE_CLUB_THRESHOLD,
+  ELITE_CLUB_BENEFIT_INTERVAL,
+  anniversaryYearWindow,
+  type MilestoneTier,
+} from "../src/lib/enums";
 import { slugify, randomReferralCode } from "../src/lib/slug";
 
 const db = new PrismaClient();
@@ -29,7 +37,7 @@ type SeedPartner = {
 };
 
 const FIRMS: SeedPartner[] = [
-  { firmName: "Sharma & Associates", contactName: "Priya Sharma", email: "priya.sharma@camail.in", city: "Delhi", state: "Delhi", stage: "ACTIVE", icp: [23, 18, 13, 9, 10, 9, 9], clients: 12 },
+  { firmName: "Sharma & Associates", contactName: "Priya Sharma", email: "priya.sharma@camail.in", city: "Delhi", state: "Delhi", stage: "ACTIVE", icp: [23, 18, 13, 9, 10, 9, 9], clients: 32 },
   { firmName: "Mehta Tax Advisors", contactName: "Rohan Mehta", email: "rohan.mehta@camail.in", city: "Delhi", state: "Delhi", stage: "ACTIVE", icp: [20, 15, 10, 8, 10, 8, 7], clients: 6 },
   { firmName: "Kapoor & Kapoor CAs", contactName: "Anjali Kapoor", email: "anjali.kapoor@camail.in", city: "Gurugram", state: "Haryana", stage: "CERTIFIED", icp: [18, 14, 9, 7, 8, 7, 6], clients: 2 },
   { firmName: "Verma Financial Consultants", contactName: "Suresh Verma", email: "suresh.verma@camail.in", city: "Noida", state: "Uttar Pradesh", stage: "ACTIVE", icp: [22, 17, 12, 9, 9, 9, 8], clients: 9 },
@@ -231,18 +239,48 @@ async function main() {
         }
       }
 
-      // Milestone badges based on total closed-won clients this "quarter"
-      const now = new Date();
-      const quarter = `${now.getFullYear()}-Q${Math.floor(now.getMonth() / 3) + 1}`;
-      let badgeTier: "NONE" | "SILVER" | "GOLD" | "PLATINUM" = "NONE";
-      if (f.clients >= 10) badgeTier = "GOLD";
-      else if (f.clients >= 5) badgeTier = "SILVER";
+      // Milestone badges: one per ladder tier the partner's client count has
+      // crossed within their current anniversary year, mirroring the live
+      // checkMilestoneBadges logic so seeded data looks realistic.
+      const { yearIndex } = anniversaryYearWindow(partner.certifiedAt);
+      const period = `Y${yearIndex}`;
+      const crossedTiers = (Object.keys(MILESTONE_TIER_META) as Exclude<MilestoneTier, "NONE">[])
+        .filter((tier) => MILESTONE_TIER_META[tier].threshold <= f.clients)
+        .sort((a, b) => MILESTONE_TIER_META[a].threshold - MILESTONE_TIER_META[b].threshold);
 
-      if (badgeTier !== "NONE") {
+      for (const tier of crossedTiers) {
         await db.badge.create({
-          data: { partnerId: partner.id, tier: badgeTier, quarter, clientsAtMilestone: f.clients },
+          data: { partnerId: partner.id, tier, period, clientsAtMilestone: MILESTONE_TIER_META[tier].threshold },
         });
-        await db.partner.update({ where: { id: partner.id }, data: { badgeTier } });
+      }
+
+      const highestTier = crossedTiers.at(-1) ?? "NONE";
+      const isElite = f.clients >= ELITE_CLUB_THRESHOLD;
+      const eliteBenefitsIssued = isElite
+        ? Math.floor((f.clients - ELITE_CLUB_THRESHOLD) / ELITE_CLUB_BENEFIT_INTERVAL)
+        : 0;
+
+      await db.partner.update({
+        where: { id: partner.id },
+        data: {
+          badgeTier: highestTier,
+          eliteClubMember: isElite,
+          eliteMemberSince: isElite ? new Date(Date.now() - randomBetween(1, 60) * 86400000) : null,
+          eliteBenefitsIssued,
+        },
+      });
+
+      if (isElite) {
+        for (let i = 1; i <= eliteBenefitsIssued; i++) {
+          await db.badge.create({
+            data: {
+              partnerId: partner.id,
+              tier: "ELITE_BENEFIT",
+              period: `ELITE_${ELITE_CLUB_THRESHOLD + i * ELITE_CLUB_BENEFIT_INTERVAL}`,
+              clientsAtMilestone: ELITE_CLUB_THRESHOLD + i * ELITE_CLUB_BENEFIT_INTERVAL,
+            },
+          });
+        }
       }
 
       await db.activityEvent.createMany({

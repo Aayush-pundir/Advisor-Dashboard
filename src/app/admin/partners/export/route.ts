@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { getAuthedUser } from "@/lib/auth";
 import { canManagePartners } from "@/lib/permissions";
-import type { UserRole } from "@/lib/enums";
+import { MILESTONE_TIER_META, type UserRole, type MilestoneTier } from "@/lib/enums";
 import { toCsv } from "@/lib/csv";
 
 export async function GET() {
@@ -21,7 +21,11 @@ export async function GET() {
       city: p.city,
       state: p.state,
       stage: p.stage,
-      badgeTier: p.badgeTier,
+      milestoneTier: p.eliteClubMember
+        ? "Elite Club"
+        : p.badgeTier === "NONE"
+          ? ""
+          : MILESTONE_TIER_META[p.badgeTier as Exclude<MilestoneTier, "NONE">].label,
       certLevel: p.certLevel,
       createdAt: p.createdAt.toISOString(),
     })),
@@ -33,7 +37,7 @@ export async function GET() {
       { key: "city", header: "City" },
       { key: "state", header: "State" },
       { key: "stage", header: "Stage" },
-      { key: "badgeTier", header: "Badge Tier" },
+      { key: "milestoneTier", header: "Milestone Tier" },
       { key: "certLevel", header: "Cert Level" },
       { key: "createdAt", header: "Signed Up At" },
     ],

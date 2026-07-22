@@ -1,11 +1,16 @@
 import { db } from "@/lib/db";
 
 export async function getAdminOverview() {
-  const [partners, leads, commissions, latestKpi] = await Promise.all([
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+
+  const [partners, leads, commissions, latestKpi, badgesThisMonth] = await Promise.all([
     db.partner.findMany(),
     db.lead.findMany(),
     db.commission.findMany(),
     db.kpiSnapshot.findFirst({ orderBy: { weekOf: "desc" } }),
+    db.badge.count({ where: { issuedAt: { gte: monthStart } } }),
   ]);
 
   const stageCounts = partners.reduce<Record<string, number>>((acc, p) => {
@@ -36,6 +41,7 @@ export async function getAdminOverview() {
     if (p.badgeTier !== "NONE") acc[p.badgeTier] = (acc[p.badgeTier] ?? 0) + 1;
     return acc;
   }, {});
+  const eliteClubCount = partners.filter((p) => p.eliteClubMember).length;
 
   return {
     totalPartners: partners.length,
@@ -49,6 +55,8 @@ export async function getAdminOverview() {
     totalCommissionsCredited,
     totalAdvisoryFeesPaid,
     badgeCounts,
+    eliteClubCount,
+    badgesThisMonth,
     latestKpi,
     partners,
   };
