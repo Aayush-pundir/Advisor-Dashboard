@@ -147,7 +147,7 @@ const FAQS = [
   },
   {
     q: "What does onboarding and certification involve?",
-    a: "After your Implementation Advisor Agreement is countersigned, a short demo session certifies your firm and your asset kit (landing page, QR code, WhatsApp pack, mini-deck) is delivered within 48 hours.",
+    a: "After your MOU is countersigned, a short demo session certifies your firm and your asset kit (landing page, QR code, WhatsApp pack, mini-deck) is delivered within 48 hours.",
   },
   {
     q: "What if I introduce a client another advisor already has a relationship with?",
