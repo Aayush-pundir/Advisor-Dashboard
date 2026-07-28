@@ -1,11 +1,36 @@
 # Advisor Dashboard — Architecture
 
 This app is the software backbone for OmniCard's **CA Partner Network**
-program (see the source plan: "OmniCard CA Partner Network — Execution
-Plan", 12-month, 0→500 partners). It implements the program end-to-end:
-the public partner microsite, the CA-facing partner portal, and the
-internal CRM/ops console — so the 10-step plan actually runs on software
-instead of spreadsheets and manual WhatsApp threads.
+program (source plan: "OmniCard CA Partner Network — Execution Plan",
+12-month, 0→500 partners). It implements the program end-to-end: the
+public partner microsite, the CA-facing partner portal, and the internal
+CRM/ops console — so the 10-step plan runs on software instead of
+spreadsheets and manual WhatsApp threads.
+
+**Status:** Feature-complete demo build. Everything described below is
+live and exercised by the seed data, except where explicitly marked as
+stubbed (see [What's stubbed vs. what's real](#whats-stubbed-vs-whats-real)).
+
+## Implementation status
+
+### ✅ Implemented
+- [x] Public marketing microsite, self-serve signup, MOU e-sign, referral codes
+- [x] Per-advisor co-branded landing page with attributed lead capture
+- [x] Full partner lifecycle (`LEAD → MEETING_SCHEDULED → ONBOARDING → CERTIFIED → ACTIVE → DORMANT`) with auto-provisioned login on certification
+- [x] Lead pipeline, scoring, channel-conflict protection, round-robin assignment
+- [x] Advisory fees (15% Year-1 + 5% trailing), auto-credited on close
+- [x] Annual milestone ladder (7 tiers) + permanent Elite Club
+- [x] Auth: sessions, forced password change, rate-limiting, sign-out-everywhere, TOTP 2FA
+- [x] Role-permission matrix, enforced server-side
+- [x] Bulk CSV import + PII masking with audited reveal
+- [x] Campaigns, asset kit catalogue, referral bonus flywheel
+- [x] Notifications, command-palette search, audit log, CSV export everywhere
+- [x] Support tickets with escalation, PWA manifest
+
+### 🔄 Deliberately stubbed
+- [ ] Email/SMS/WhatsApp sending (shown on-screen instead — see stubs section)
+- [ ] Live ICAI membership registry lookup
+- [ ] E-sign provider webhook, WhatsApp Business API send, asset-render worker
 
 ## Tech stack
 
@@ -30,6 +55,40 @@ two-step change: swap `provider = "sqlite"` → `"postgresql"` in
 optionally re-introduce native `enum` blocks for stricter DB-level
 validation.
 
+## Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    Public microsite (/)                      │
+│   Marketing site · signup · directory · co-branded /advisor  │
+│   landing pages with attributed lead capture                 │
+└───────────────────────────┬────────────────────────────────────┘
+                            │
+┌───────────────────────────▼────────────────────────────────────┐
+│              Next.js App Router (single process)               │
+│  ├─ Pages / React Server Components   (src/app/**/page.tsx)   │
+│  ├─ Server Actions                    (src/app/actions/*.ts)   │
+│  │    partner · lead · campaign · bulk · settings · team ·    │
+│  │    certification · integrations · pii · timeline · ops ·   │
+│  │    marketing-contacts · asset-kit · support · twofactor ·  │
+│  │    password · auth                                          │
+│  ├─ API routes                        (src/app/api/*,          │
+│  │    src/app/**/export/route.ts)                              │
+│  ├─ Auth / session / permissions      (src/lib/auth.ts,        │
+│  │    permissions.ts, audit.ts, middleware.ts)                 │
+│  └─ Prisma ORM                        (prisma/schema.prisma)   │
+└───────────────────────────┬────────────────────────────────────┘
+                            │
+                     ┌──────▼──────┐
+                     │   SQLite    │   (swap provider for Postgres
+                     │  dev.db     │    in production)
+                     └─────────────┘
+```
+
+There is no separate backend service or database server to run — one
+Next.js process serves the marketing site, the partner portal, the
+admin console, and all data access.
+
 ## Domain model → the 10-step plan
 
 Every model in `prisma/schema.prisma` maps directly to a step in the
@@ -37,11 +96,11 @@ execution plan:
 
 | Model | Plan step(s) | Purpose |
 |---|---|---|
-| `Partner` | Step 1 (Lock the Foundation), Step 4 (Certification), Step 5 (30-day sprint) | The CA/firm record — ICP score (Step 1.2), lifecycle stage (`LEAD → MEETING_SCHEDULED → ONBOARDING → CERTIFIED → ACTIVE → DORMANT`), badge tier, referral code. |
+| `Partner` | Step 1 (Lock the Foundation), Step 4 (Certification), Step 5 (30-day sprint) | The CA/firm record — lifecycle stage (`LEAD → MEETING_SCHEDULED → ONBOARDING → CERTIFIED → ACTIVE → DORMANT`), current milestone tier, Elite Club status, referral code. |
 | `AssetKitItem` | Step 3 (Per-CA creation checklist) | The 12-item deliverable checklist (landing page, QR, video, deck, badge, WhatsApp pack, etc.) generated automatically on certification. |
 | `Lead` | Step 6 (Lead-to-Revenue Machine) | A client lead captured under a CA's attribution, tracked `CAPTURED → QUALIFIED → CONTACTED → DEMO → PROPOSAL → CLOSED_WON/LOST`. |
 | `Commission` | Step 1.1 (MSA), Step 6.6 (payout), Step 10 (unit economics) | 15% Year-1 + 5% trailing fee, auto-created and credited when a lead closes. |
-| `Badge` | Step 4 (Milestone rewards) | Silver/Gold/Platinum, auto-issued per quarter once the client-count threshold is hit — computed from `Lead.closedAt` inside the quarter window. |
+| `Badge` | Step 4 (Milestone rewards) | Annual milestone-ladder tiers and Elite Club benefits — see [Milestone ladder + Elite Club](#milestone-ladder--elite-club) below. |
 | `ReferralBonus` / `Partner.referredBy` | Step 8 (Retention & Referral Flywheel) | Partner-refers-partner bonus tracking. |
 | `Campaign` | Step 3.11, Step 7 (Acquisition Marketing Engine) | Pre-drafted campaigns a CA approves in one click; OmniCard "sends" on approval. |
 | `ActivityEvent` | Step 6.1, Step 9 (attribution) | Every share/click/QR-scan/webinar-attend/campaign-approval, CA-tagged, for funnel attribution. |
@@ -54,6 +113,34 @@ execution plan:
 12-step flow, proof brands, KPI target table) shown on the marketing
 site and admin overview — content lives in one place, not copy-pasted
 across pages.
+
+## Milestone ladder + Elite Club
+
+Replaces an earlier flat Silver/Gold/Platinum quarterly badge system.
+Defined in `src/lib/enums.ts` (`MILESTONE_TIERS`, `MILESTONE_TIER_META`,
+`ELITE_CLUB_THRESHOLD`, `ELITE_CLUB_BENEFIT_INTERVAL`,
+`anniversaryYearWindow()`), computed in `checkMilestoneBadges()`
+(`src/app/actions/lead.ts`) every time a lead closes.
+
+- **7-tier ladder** — 1st, 3rd, 5th, 10th, 15th, 20th, 25th client
+  referred, each with an escalating PR/visibility reward (LinkedIn
+  spotlight → newsletter → verified profile/backlink → webinar →
+  whitepaper → speaking slot → media interview).
+- **Anniversary-year cadence** — every tier resets fresh each 12-month
+  window anchored to the partner's `certifiedAt` date, computed by
+  `anniversaryYearWindow()`. `Badge.period` stores the window label
+  (`Y1`, `Y2`, ...).
+- **Elite Club** — reaching the 25th-client milestone within a single
+  anniversary year permanently inducts the partner (`Partner.eliteClubMember`,
+  `eliteMemberSince`). Once Elite, the yearly reset no longer applies;
+  instead the partner accrues lifetime-cumulative benefits, one every 5
+  additional clients closed (`Partner.eliteBenefitsIssued`,
+  `Badge.tier = "ELITE_BENEFIT"`, `Badge.period = "ELITE_30"`, `"ELITE_35"`, ...).
+
+`getPartnerDashboard()` (`src/lib/queries/partner.ts`) returns a
+discriminated `MilestoneProgress` union so the dashboard's "Milestone
+progress" card can render the tier-ladder state and the lifetime-Elite
+state with no shared conditional logic.
 
 ## Application surfaces
 
@@ -68,28 +155,37 @@ across pages.
 /login                    Shared login for CA partners + internal ops
 
 /partner/*                CA-facing portal (auth: role CA)
-  /partner                 Dashboard — earnings, pipeline, milestone
-                           progress, city rank, referral link
-  /partner/leads           Leads & pipeline table
-  /partner/assets          Step 3 asset-kit checklist status
+  /partner                 Dashboard — earnings calculator, milestone
+                           progress, pipeline snapshot, referral link
+  /partner/documents       Signed MOU + certificate (printable)
+  /partner/leads           Leads & Pipeline (bulk import, marketing
+                           contacts sub-tab)
+  /partner/assets          Asset kit checklist + downloads
   /partner/campaigns       Pending campaigns to approve in one click
-  /partner/badges          Milestone tiers + badges earned
-  /partner/referrals       Refer-a-CA flywheel + bonus tracking
+  /partner/achievements    Milestones/Elite Club, Leaderboard,
+                           Certification track, Refer-a-CA — one page,
+                           four tabs
+  /partner/settings        Profile, payout, team, integrations, security
 
 /admin/*                  Internal ops CRM (auth: ADMIN / PARTNER_MANAGER
                           / MARKETING_OPS / SALES)
-  /admin                   KPI overview — partner + lead funnels
-                           (Recharts), badge counts, Step 9 KPI targets
-  /admin/partners          ICP-scored CRM list, pursue ≥70 / skip <50
-  /admin/partners/[id]     Onboarding actions (schedule meeting → verify
-                           ICAI/MSA → certify), Step 3 checklist, leads,
-                           commissions for that partner
-  /admin/leads             Cross-partner lead-to-revenue table with
-                           inline stage advancement (drives commission +
-                           badge logic)
-  /admin/campaigns         Draft a campaign for a CA to approve
-  /admin/commissions       Full commission ledger with credited/pending
-                           totals
+  /admin                   Dashboard — KPI funnels, Elite Club/milestone
+                           tiles, action queue (partners awaiting
+                           accept/countersign/demo, open tickets)
+  /admin/partners          CRM list, filters (stage/tier/cert/city),
+                           inline bulk-add panel, Referral Network tab
+  /admin/leads             Cross-partner lead-to-revenue table, Kanban
+                           view, inline stage advancement (drives
+                           commission + milestone logic)
+  /admin/ops               Rep workload + 24-hour first-contact SLA
+  /admin/campaigns         Draft a campaign for a CA to approve,
+                           marketing contact lists section
+  /admin/asset-kit         Asset kit catalogue management
+  /admin/commissions       Advisory fees ledger / full MIS
+  /admin/support           Support tickets with escalation tracking
+  /admin/team              Internal team management (ADMIN only)
+  /admin/audit             Audit log (ADMIN only)
+  /admin/settings          Profile, security, 2FA enrollment
 ```
 
 Route protection is enforced in `src/middleware.ts`: unauthenticated
@@ -107,25 +203,31 @@ can't reach `/admin/*` and an ops session can't reach `/partner/*`.
     (default password, meant to be reset on first login in production).
   - `advancePartnerStageAction` — moves a partner through
     `LEAD → MEETING_SCHEDULED → ONBOARDING`.
+  - `mergePartnersAction` — merges duplicate partner records.
 - **`lead.ts`**
   - `advanceLeadStageAction` — Step 6 pipeline movement; on `CLOSED_WON`
     it creates the Year-1 + trailing `Commission` rows, flips the
-    partner to `ACTIVE`, and checks/issues quarterly milestone `Badge`s
-    (Step 4/8).
+    partner to `ACTIVE`, and runs `checkMilestoneBadges` (annual ladder
+    + Elite Club — see above).
 - **`campaign.ts`**
   - `createCampaignAction` — ops drafts a campaign for a partner.
   - `approveCampaignAction` — CA approves in one click (Step 3.11).
+- **`bulk.ts`** — CSV import for partners and leads, duplicate detection.
+- **`pii.ts`** — `revealLeadPiiAction`, permission-checked and audited.
+- **`certification.ts`** — self-serve certification module completion.
+- **`ops.ts`** — round-robin lead assignment, rep workload.
 
 ## Data & seeding
 
 `prisma/seed.ts` seeds 12 realistic CA firms across 8 Indian cities,
 spread across every lifecycle stage, with leads, commissions, campaigns,
-asset kits, milestone badges, one referral relationship, and six weeks of
-`KpiSnapshot` rows — enough to exercise every page without manual setup.
+asset kits, milestone badges (including one Elite Club member for
+realism), one referral relationship, and six weeks of `KpiSnapshot` rows
+— enough to exercise every page without manual setup.
 
 ```bash
 npm install
-npx prisma migrate dev   # creates prisma/dev.db
+npx prisma migrate deploy   # creates prisma/dev.db
 npm run db:seed
 npm run dev
 ```
@@ -135,8 +237,8 @@ Demo logins (seeded, password `omnicard123` for all):
 - Partner manager: `ops@omnicard.in`
 - Sales: `sales@omnicard.in`
 - Marketing Ops: `marketing@omnicard.in`
-- CA partner (fully active, ACTIVE stage, Gold badge, has a teammate + payout
-  details + sample notifications): `priya.sharma@camail.in`
+- CA partner (fully active, ACTIVE stage, Elite Club member, has a
+  teammate + payout details + sample notifications): `priya.sharma@camail.in`
 
 ## Auth & account system
 
@@ -155,17 +257,17 @@ Built in four phases, all fully functional except where noted:
   invalidates every previously issued session immediately.
 - Password strength rule (`isStrongPassword`): 8+ chars, letter + number.
 
-**Phase 1 — advisor (CA) account layer** (`/partner/settings`, `/partner/team`,
-`/partner/documents`, `/partner/notifications`)
+**Phase 1 — advisor (CA) account layer** (`/partner/settings`,
+`/partner/documents`)
 - Firm profile + payout details (bank/UPI/PAN/GST) editable by the firm owner.
 - Multi-user firms: `User.partnerId` is no longer unique — more than one login
   (`firmRole: OWNER | MEMBER`) can share a `Partner` record. The owner invites
-  teammates from `/partner/team`.
+  teammates from `/partner/settings`.
 - Document center: the MOU and certification certificate are re-rendered from
   live `Partner` data (not stored as static files) with a "Print / Save as
   PDF" button (`window.print()` + print-only CSS), so they're always current.
 - In-app notification feed (`Notification` model, `src/lib/notify.ts`):
-  certification, commission credited, badge earned, and campaign-pending
+  certification, commission credited, milestone earned, and campaign-pending
   events all populate it automatically; the sidebar shows an unread badge.
 
 **Phase 2 — admin account layer** (`src/lib/permissions.ts`, `src/lib/audit.ts`,
@@ -185,10 +287,9 @@ Built in four phases, all fully functional except where noted:
   "pending 2FA" cookie (`/login/2fa`) before the real session is issued.
 
 **Phase 4 — extras**: global command-palette search across partners/leads
-(Cmd/Ctrl+K, `/api/search`), CSV export of the commission ledger and KPI
-snapshots, and MOU version tracking (`Partner.mouVersion`,
-`CURRENT_MOU_VERSION`) so re-issuing the MOU text later doesn't silently
-reinterpret old signatures.
+(Cmd/Ctrl+K, `/api/search`), CSV export on every admin and partner table, and
+MOU version tracking (`Partner.mouVersion`, `CURRENT_MOU_VERSION`) so
+re-issuing the MOU text later doesn't silently reinterpret old signatures.
 
 ## Partner lifecycle CRM (PRM v2)
 
@@ -226,16 +327,17 @@ advisor side, on top of the auth/account layer above.
   phone number within a 90-day window, the new submission is blocked with a
   clear error. Admin's `/admin/leads` flags any conflict inline.
 
-**Tiering and certification** (`Partner.badgeTier`, `Partner.certLevel`,
-`CertificationProgress`)
-- Badge tier (Silver/Gold/Platinum) updates now stamp `tierUpdatedAt`.
+**Tiering and certification** (`Partner.badgeTier`, `Partner.eliteClubMember`,
+`Partner.certLevel`, `CertificationProgress`)
+- Milestone tier (see [Milestone ladder + Elite Club](#milestone-ladder--elite-club))
+  updates stamp `tierUpdatedAt`; Elite Club induction stamps `eliteMemberSince`.
 - Admin's partner list/detail pages flag "territory overlap" when multiple
   non-dormant partners share a city+state, so overlapping coverage is visible
   without a hard geo-exclusivity rule that would block onboarding.
 - Self-serve certification track (`/partner/achievements?tab=certification`):
   completing every module for a level (Demo → Product → Sales) auto-bumps
-  `Partner.certLevel`. Badges, the leaderboard, certification, and referrals
-  all live as sub-tabs of a single `/partner/achievements` page.
+  `Partner.certLevel`. Milestones, the leaderboard, certification, and
+  referrals all live as sub-tabs of a single `/partner/achievements` page.
 
 **Lead routing + ops efficiency** (`src/lib/assignment.ts`, `/admin/ops`)
 - New leads (single capture and bulk upload) auto-assign to whichever active
@@ -246,23 +348,14 @@ advisor side, on top of the auth/account layer above.
   compliance.
 
 **Navigation, deliberately kept narrow** — the admin sidebar is 8 items
-(Dashboard, Partners, Leads, Ops Efficiency, Campaigns, Commissions, Support,
-Exports) plus admin-only Team/Audit/Settings; the partner sidebar is 6
-(Dashboard, Documents, Leads, Assets, Campaigns, Achievements) plus Settings.
-Every feature above still exists — most live as a tab, an expandable panel,
-or a section on one of these pages rather than a route of its own:
-- `/admin` doubles as the Action Queue (partners awaiting accept/
-  countersign/demo, open tickets) above the KPI funnels.
-- `/admin/partners` has an inline bulk-add panel and a "Referral Network"
-  tab; `/admin/campaigns` has a "Marketing contact lists" section.
-- `/partner/leads` has "My Leads" (one-by-one + bulk CSV) and "Marketing
-  Contacts" tabs; `/partner/achievements` has Badges/Leaderboard/
-  Certification/Refer-a-CA tabs; `/partner/settings` has Team and
-  Integrations (API key + webhook) sections alongside profile/payout.
-- `/partner/documents` (signed MOU + certificate, both printable) is
-  reachable during onboarding, not just after certification.
+(Dashboard, Partners, Leads, Ops Efficiency, Campaigns, Asset Kit,
+Commissions, Support) plus admin-only Team/Audit/Settings; the partner
+sidebar is 6 (Dashboard, Documents, Leads, Assets, Campaigns, Achievements)
+plus Settings. Most of the functionality above lives as a tab, an
+expandable panel, or a section on one of these pages rather than a route
+of its own — see the full surface map above.
 
-### What's stubbed vs. what's real
+## What's stubbed vs. what's real
 
 Everything above is fully functional end-to-end **except** actually sending
 an email or SMS/WhatsApp message — there's no provider account to send
@@ -272,7 +365,7 @@ through. Concretely:
   configured") instead of emailing it. Wiring a provider (Resend/SES/SendGrid)
   means replacing that one redirect in `forgotPasswordAction` with an email
   send call — the token/link generation is already correct and secure.
-- **Team invites** (both `/admin/team` and `/partner/team`) generate a real
+- **Team invites** (both `/admin/team` and `/partner/settings`) generate a real
   temp password and create a real account with `mustChangePassword: true`;
   the password is shown once to the inviter to relay manually instead of
   being emailed.
