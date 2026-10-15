@@ -1,8 +1,7 @@
 # Advisor Dashboard — Architecture
 
-This app is the software backbone for OmniCard's **CA Partner Network**
-program (source plan: "OmniCard CA Partner Network — Execution Plan",
-12-month, 0→500 partners). It implements the program end-to-end: the
+This app is the software backbone for a **CA Partner Network**
+program (source plan: a 12-month partner-program execution plan). It implements the program end-to-end: the
 public partner microsite, the CA-facing partner portal, and the internal
 CRM/ops console — so the 10-step plan runs on software instead of
 spreadsheets and manual WhatsApp threads.
@@ -18,7 +17,7 @@ stubbed (see [What's stubbed vs. what's real](#whats-stubbed-vs-whats-real)).
 - [x] Per-advisor co-branded landing page with attributed lead capture
 - [x] Full partner lifecycle (`LEAD → MEETING_SCHEDULED → ONBOARDING → CERTIFIED → ACTIVE → DORMANT`) with auto-provisioned login on certification
 - [x] Lead pipeline, scoring, channel-conflict protection, round-robin assignment
-- [x] Advisory fees (15% Year-1 + 5% trailing), auto-credited on close
+- [x] Advisory fees (configurable Year-1 + trailing rates), auto-credited on close
 - [x] Annual milestone ladder (7 tiers) + permanent Elite Club
 - [x] Auth: sessions, forced password change, rate-limiting, sign-out-everywhere, TOTP 2FA
 - [x] Role-permission matrix, enforced server-side
@@ -99,16 +98,16 @@ execution plan:
 | `Partner` | Step 1 (Lock the Foundation), Step 4 (Certification), Step 5 (30-day sprint) | The CA/firm record — lifecycle stage (`LEAD → MEETING_SCHEDULED → ONBOARDING → CERTIFIED → ACTIVE → DORMANT`), current milestone tier, Elite Club status, referral code. |
 | `AssetKitItem` | Step 3 (Per-CA creation checklist) | The 12-item deliverable checklist (landing page, QR, video, deck, badge, WhatsApp pack, etc.) generated automatically on certification. |
 | `Lead` | Step 6 (Lead-to-Revenue Machine) | A client lead captured under a CA's attribution, tracked `CAPTURED → QUALIFIED → CONTACTED → DEMO → PROPOSAL → CLOSED_WON/LOST`. |
-| `Commission` | Step 1.1 (MSA), Step 6.6 (payout), Step 10 (unit economics) | 15% Year-1 + 5% trailing fee, auto-created and credited when a lead closes. |
+| `Commission` | Step 1.1 (MSA), Step 6.6 (payout), Step 10 (unit economics) | configurable Year-1 + trailing fee, auto-created and credited when a lead closes. |
 | `Badge` | Step 4 (Milestone rewards) | Annual milestone-ladder tiers and Elite Club benefits — see [Milestone ladder + Elite Club](#milestone-ladder--elite-club) below. |
 | `ReferralBonus` / `Partner.referredBy` | Step 8 (Retention & Referral Flywheel) | Partner-refers-partner bonus tracking. |
-| `Campaign` | Step 3.11, Step 7 (Acquisition Marketing Engine) | Pre-drafted campaigns a CA approves in one click; OmniCard "sends" on approval. |
+| `Campaign` | Step 3.11, Step 7 (Acquisition Marketing Engine) | Pre-drafted campaigns a CA approves in one click; the platform "sends" on approval. |
 | `ActivityEvent` | Step 6.1, Step 9 (attribution) | Every share/click/QR-scan/webinar-attend/campaign-approval, CA-tagged, for funnel attribution. |
-| `KpiSnapshot` | Step 9 (Tracking & KPIs) | Weekly funnel metrics against the plan's explicit targets (cost/lead ≤ Rs 500, activation ≥ 60%, SLA ≥ 95%, etc). |
+| `KpiSnapshot` | Step 9 (Tracking & KPIs) | Weekly funnel metrics against the plan's explicit targets (cost/lead, activation and SLA targets). |
 | `User` | Auth | Login identity; `role: CA` links 1:1 to a `Partner` record (provisioned automatically the moment a partner is certified — see `certifyPartnerAction`). |
 
 `src/lib/enums.ts` also carries the ICP scoring weights and rates
-(`YEAR1_RATE = 15%`, `TRAILING_RATE = 5%`) as named constants, and
+(`YEAR1_RATE`, `TRAILING_RATE`) as named constants, and
 `src/lib/plan-content.ts` carries the static plan copy (stats, the
 12-step flow, proof brands, KPI target table) shown on the marketing
 site and admin overview — content lives in one place, not copy-pasted
@@ -232,13 +231,13 @@ npm run db:seed
 npm run dev
 ```
 
-Demo logins (seeded, password `omnicard123` for all):
-- Admin: `admin@omnicard.in`
-- Partner manager: `ops@omnicard.in`
-- Sales: `sales@omnicard.in`
-- Marketing Ops: `marketing@omnicard.in`
+Demo logins (seeded, credentials created by `prisma/seed.ts`; change before any real deployment):
+- Admin: `admin@example.com`
+- Partner manager: `manager@example.com`
+- Sales: `sales@example.com`
+- Marketing Ops: `marketing@example.com`
 - CA partner (fully active, ACTIVE stage, Elite Club member, has a
-  teammate + payout details + sample notifications): `priya.sharma@camail.in`
+  teammate + payout details + sample notifications): `partner@example.com`
 
 ## Auth & account system
 
@@ -372,7 +371,7 @@ through. Concretely:
 - **2FA, rate limiting, sessions, audit log, notifications, CSV export,
   permission enforcement** — no external dependency, fully live today.
 - **PWA**: `public/manifest.json` + generated app icons (`icon-192.png`,
-  `icon-512.png`, `apple-touch-icon.png`, cropped from the OmniCard mark)
+  `icon-512.png`, `apple-touch-icon.png`, generated from a placeholder mark)
   make the dashboard installable on mobile/desktop home screens with the
   brand color as the theme color. There's no service worker yet, so it's
   installable but not offline-capable — adding one is additive, not a

@@ -1,7 +1,7 @@
-# 🤝 Advisor Dashboard: OmniCard CA Partner Network Platform
+# 🤝 Advisor Dashboard: CA Partner Network Platform
 
 A full-stack partner relationship management (PRM) platform that runs
-OmniCard's Chartered Accountant partner program end-to-end — from public
+a Chartered Accountant (CA) partner program end-to-end — from public
 lead capture, through certification and co-branded marketing, to
 lead-to-revenue tracking, advisory-fee payout, and an annual milestone
 recognition ladder.
@@ -26,7 +26,7 @@ into software, replacing spreadsheets and manual WhatsApp threads with:
   (1st through 25th client, reset each anniversary year) that graduates
   top performers into a permanent, lifetime-benefit Elite Club.
 - **Internal CRM/ops console** — funnel KPIs, action queues, support
-  tickets, audit logging, and role-based permissions for the OmniCard
+  tickets, audit logging, and role-based permissions for the internal
   team.
 
 ## 📋 Current Implementation Status
@@ -41,7 +41,7 @@ into software, replacing spreadsheets and manual WhatsApp threads with:
 - [x] Full partner lifecycle: `LEAD → MEETING_SCHEDULED → ONBOARDING → CERTIFIED → ACTIVE → DORMANT`
 - [x] Certification generates a 12-item asset kit + certificate automatically
 - [x] Lead pipeline with scoring, channel-conflict detection, round-robin rep assignment
-- [x] Advisory fees: 15% Year-1 + 5% trailing, auto-credited on `CLOSED_WON`
+- [x] Advisory fees: configurable Year-1 + trailing rates, auto-credited on `CLOSED_WON`
 - [x] Annual milestone ladder (1st/3rd/5th/10th/15th/20th/25th client) + permanent Elite Club at 25 clients/year
 - [x] Bulk CSV import (partners + leads) with PII masking and audited reveal
 - [x] Campaigns (draft → approve → sent), asset kit catalogue, referral bonus flywheel
@@ -183,13 +183,16 @@ npm run build
 npm start
 ```
 
-### Demo logins (password `omnicard123` for all)
+### Demo logins (fictional accounts created by the seed script)
+
+The seed script (`prisma/seed.ts`) creates the demo users and prints their
+credentials. Change them before deploying anywhere real.
 
 | Role | Email |
 |---|---|
-| Admin | `admin@omnicard.in` |
-| Partner Manager | `ops@omnicard.in` |
-| CA Partner (Elite Club member) | `priya.sharma@camail.in` |
+| Admin | `admin@example.com` |
+| Partner Manager | `manager@example.com` |
+| CA Partner (Elite Club member) | `partner@example.com` |
 
 ## 📜 Scripts
 
@@ -230,4 +233,4 @@ each one plugs in.
 
 ## 🤝 Contributing
 
-Internal project for the OmniCard CA Partner Network program.
+Demo / portfolio project. All names, emails and data in this repository are fictional.
